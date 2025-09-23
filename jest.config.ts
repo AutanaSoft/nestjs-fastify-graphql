@@ -1,21 +1,43 @@
 import type { Config } from 'jest';
 
-const config: Config = {
+const baseProject: Config = {
   transform: {
     '^.+\\.(t|j)s$': ['@swc/jest', { configFile: '.swcrc' }],
   },
   testEnvironment: 'node',
   cacheDirectory: '.tmp/jestCache',
-  collectCoverage: true,
+  coverageDirectory: 'coverage',
   collectCoverageFrom: [
-    'src/**/*.(t|j)s',
-    '!src/config/**/*.(t|j)s',
-    '!src/main.ts',
-    '!src/**/index.(t|j)s',
+    '<rootDir>/src/**/*.(t|j)s',
+    '!<rootDir>/src/config/**/*.(t|j)s',
+    '!<rootDir>/src/main.ts',
+    '!<rootDir>/src/**/index.(t|j)s',
   ],
   clearMocks: true,
   modulePaths: ['./'],
-  testRegex: '.(spec|e2e-spec).ts$',
+};
+
+const config: Config = {
+  projects: [
+    {
+      ...baseProject,
+      displayName: 'unit',
+      testMatch: ['<rootDir>/tests/src/**/*.spec.ts'],
+    },
+    {
+      ...baseProject,
+      displayName: 'e2e',
+      testMatch: ['<rootDir>/tests/e2e/**/*.e2e-spec.ts'],
+    },
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 50,
+      functions: 50,
+      lines: 50,
+      statements: 50,
+    },
+  },
 };
 
 export default config;
