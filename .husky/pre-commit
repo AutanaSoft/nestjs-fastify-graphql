@@ -1,0 +1,2 @@
+# Ejecutar lint-staged sobre los archivos staged
+pnpm lint-staged
