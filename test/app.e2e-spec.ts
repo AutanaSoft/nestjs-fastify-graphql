@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
+import type { Server } from 'http';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication;
@@ -20,7 +21,7 @@ describe('AppController (e2e)', () => {
   });
 
   it('/ (GET)', async () => {
-    await request(app.getHttpServer())
+    await request(app.getHttpServer() as unknown as Server)
       .get('/')
       .expect(200)
       .expect('Hello World!');
