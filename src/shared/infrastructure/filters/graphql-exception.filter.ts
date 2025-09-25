@@ -8,12 +8,7 @@ import {
   toExtensions,
   withCorrelationId,
 } from '@/shared/infrastructure/utils';
-import {
-  ArgumentsHost,
-  Catch,
-  ExceptionFilter,
-  HttpStatus,
-} from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpStatus } from '@nestjs/common';
 import { GqlArgumentsHost } from '@nestjs/graphql';
 import { GraphQLError } from 'graphql';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
@@ -50,10 +45,7 @@ export class GraphQLExceptionFilter implements ExceptionFilter {
     const correlationId = this.extractCorrelationId(host);
 
     // Handle our custom GraphQL errors (Domain, Application, Infrastructure)
-    if (
-      exception instanceof BaseDomainError ||
-      exception instanceof InfrastructureError
-    ) {
+    if (exception instanceof BaseDomainError || exception instanceof InfrastructureError) {
       // Selective logging: Only log infrastructure errors (domain errors are expected and not logged)
       if (exception instanceof InfrastructureError) {
         this.logger.error({
@@ -65,10 +57,7 @@ export class GraphQLExceptionFilter implements ExceptionFilter {
       }
 
       // Add correlation ID to existing extensions and throw
-      const enriched = withCorrelationId(
-        exception as GraphQLError,
-        correlationId,
-      );
+      const enriched = withCorrelationId(exception as GraphQLError, correlationId);
       throw enriched;
     }
 
@@ -77,8 +66,7 @@ export class GraphQLExceptionFilter implements ExceptionFilter {
       const enriched = withCorrelationId(exception, correlationId);
       // Adjust log level depending on code
       const code = (enriched.extensions?.code as string) ?? 'UNKNOWN';
-      const level: 'info' | 'warn' =
-        code === 'BAD_USER_INPUT' ? 'info' : 'warn';
+      const level: 'info' | 'warn' = code === 'BAD_USER_INPUT' ? 'info' : 'warn';
       this.logger[level]({
         message: enriched.message,
         extensions: enriched.extensions,
@@ -133,17 +121,11 @@ export class GraphQLExceptionFilter implements ExceptionFilter {
     // Handle unknown errors
     return {
       status: HttpStatus.INTERNAL_SERVER_ERROR,
-      message:
-        exception instanceof Error
-          ? exception.message
-          : 'Internal server error',
+      message: exception instanceof Error ? exception.message : 'Internal server error',
       code: 'INTERNAL_SERVER_ERROR',
       extensions: {
         timestamp: new Date().toISOString(),
-        error:
-          exception instanceof Error
-            ? exception.constructor.name
-            : 'Unknown Error',
+        error: exception instanceof Error ? exception.constructor.name : 'Unknown Error',
       },
     };
   }
@@ -160,8 +142,7 @@ export class GraphQLExceptionFilter implements ExceptionFilter {
       id?: string;
       headers?: Record<string, string | string[]>;
     };
-    const headerId =
-      (request?.headers?.['x-correlation-id'] as string) || undefined;
+    const headerId = (request?.headers?.['x-correlation-id'] as string) || undefined;
     return request?.id || headerId || 'no-correlation-id';
   }
 

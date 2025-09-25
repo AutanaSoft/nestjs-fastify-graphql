@@ -51,9 +51,7 @@ export default registerAs('databaseConfig', (): DatabaseConfig => {
  * @param config Configuración de base de datos ya validada.
  * @returns Opciones listas para inicializar el módulo de TypeORM.
  */
-export const createTypeOrmModuleOptions = (
-  config: DatabaseConfig,
-): TypeOrmModuleOptions => ({
+export const createTypeOrmModuleOptions = (config: DatabaseConfig): TypeOrmModuleOptions => ({
   type: config.type,
   host: config.host,
   port: config.port,

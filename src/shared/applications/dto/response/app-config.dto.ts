@@ -15,8 +15,7 @@ export class ServerConfigDto {
   port: number;
 
   @Field({
-    description:
-      'Indica si la aplicación aplica un prefijo global en las rutas.',
+    description: 'Indica si la aplicación aplica un prefijo global en las rutas.',
   })
   useGlobalPrefix: boolean;
 

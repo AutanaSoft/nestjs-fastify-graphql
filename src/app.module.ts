@@ -16,9 +16,7 @@ import {
   graphqlConfig,
   helmetConfig,
 } from './config';
-import throttlerConfig, {
-  createThrottlerModuleOptions,
-} from './config/throttler.config';
+import throttlerConfig, { createThrottlerModuleOptions } from './config/throttler.config';
 import { GqlThrottlerGuard } from './shared/infrastructure/guards/gql-throttler.guard';
 
 @Module({

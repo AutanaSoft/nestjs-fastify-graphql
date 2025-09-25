@@ -11,10 +11,7 @@ interface BuildGqlErrorOptions {
 /**
  * Build a GraphQLError preserving path and composing extensions cleanly.
  */
-export function buildGraphQLError(
-  message: string,
-  opts: BuildGqlErrorOptions,
-): GraphQLError {
+export function buildGraphQLError(message: string, opts: BuildGqlErrorOptions): GraphQLError {
   return new GraphQLError(message, {
     path: opts.path,
     extensions: {

@@ -27,9 +27,6 @@ export const buildServerUrl = (appConfig: AppConfig): string => {
  * @param endpoint Nombre del endpoint de GraphQL; por defecto es "graphql".
  * @returns URL completa del endpoint de GraphQL.
  */
-export const buildGraphQLUrl = (
-  serverUrl: string,
-  endpoint = 'graphql',
-): string => {
+export const buildGraphQLUrl = (serverUrl: string, endpoint = 'graphql'): string => {
   return `${serverUrl}/${endpoint}`;
 };

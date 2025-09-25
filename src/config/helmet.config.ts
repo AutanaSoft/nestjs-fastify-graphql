@@ -5,12 +5,7 @@ import { registerAs } from '@nestjs/config';
  * Lista de hosts de confianza para desarrollo utilizados en cabeceras de seguridad.
  * @public
  */
-export const DEV_TRUSTED_HOSTS = [
-  'localhost',
-  '127.0.0.1',
-  '*.localhost',
-  '*.local',
-] as const;
+export const DEV_TRUSTED_HOSTS = ['localhost', '127.0.0.1', '*.localhost', '*.local'] as const;
 
 /**
  * Orígenes permitidos para las herramientas de Apollo Studio en modo desarrollo.
@@ -34,9 +29,7 @@ function isProduction(): boolean {
  * @param prod Indica si se ejecuta en producción para endurecer las directivas.
  * @returns Configuración parcial con la política de seguridad de contenidos.
  */
-function buildMinimalCsp(
-  prod: boolean,
-): Pick<FastifyHelmetOptions, 'contentSecurityPolicy'> {
+function buildMinimalCsp(prod: boolean): Pick<FastifyHelmetOptions, 'contentSecurityPolicy'> {
   const allowDev = !prod;
   const httpsTrustedHosts = DEV_TRUSTED_HOSTS.map((h) => `https://${h}`);
   const extraCorsOrigins = resolveCorsAllowedOriginsForCsp();
@@ -50,30 +43,14 @@ function buildMinimalCsp(
         defaultSrc: ["'self'"],
         scriptSrc: [
           "'self'",
-          ...(allowDev
-            ? ["'unsafe-inline'", "'unsafe-eval'", ...unifiedHttpsOrigins]
-            : []),
+          ...(allowDev ? ["'unsafe-inline'", "'unsafe-eval'", ...unifiedHttpsOrigins] : []),
         ],
-        styleSrc: [
-          "'self'",
-          "'unsafe-inline'",
-          ...(allowDev ? unifiedHttpsOrigins : []),
-        ],
-        imgSrc: [
-          "'self'",
-          'data:',
-          'blob:',
-          ...(allowDev ? unifiedHttpsOrigins : []),
-        ],
-        connectSrc: [
-          "'self'",
-          ...(allowDev ? ['ws:', 'wss:', ...unifiedHttpsOrigins] : []),
-        ],
+        styleSrc: ["'self'", "'unsafe-inline'", ...(allowDev ? unifiedHttpsOrigins : [])],
+        imgSrc: ["'self'", 'data:', 'blob:', ...(allowDev ? unifiedHttpsOrigins : [])],
+        connectSrc: ["'self'", ...(allowDev ? ['ws:', 'wss:', ...unifiedHttpsOrigins] : [])],
         fontSrc: ["'self'", 'data:', ...(allowDev ? unifiedHttpsOrigins : [])],
         objectSrc: ["'none'"],
-        frameAncestors: allowDev
-          ? ["'self'", ...APOLLO_STUDIO_ORIGINS]
-          : ["'none'"],
+        frameAncestors: allowDev ? ["'self'", ...APOLLO_STUDIO_ORIGINS] : ["'none'"],
         frameSrc: allowDev ? ["'self'", ...APOLLO_STUDIO_ORIGINS] : ["'none'"],
       },
       reportOnly: allowDev,
@@ -94,9 +71,7 @@ function resolveCorsAllowedOriginsForCsp(): string[] {
         .split(',')
         .map((o) => o.trim())
         .filter(Boolean)
-        .map((o) =>
-          o.startsWith('http://') ? o.replace('http://', 'https://') : o,
-        )
+        .map((o) => (o.startsWith('http://') ? o.replace('http://', 'https://') : o))
         .filter((o) => o.startsWith('https://')),
     ),
   );

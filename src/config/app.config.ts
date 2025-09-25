@@ -41,8 +41,7 @@ export default registerAs<AppConfig>(
   'appConfig',
   (): AppConfig => ({
     name: process.env.APP_NAME || 'NestJS GraphQL API',
-    description:
-      process.env.APP_DESCRIPTION || 'API built with NestJS and GraphQL',
+    description: process.env.APP_DESCRIPTION || 'API built with NestJS and GraphQL',
     version: process.env.APP_VERSION || '1.0.0',
     server: {
       host: process.env.APP_SERVER_HOST || 'localhost',

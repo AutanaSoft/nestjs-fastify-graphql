@@ -17,10 +17,7 @@ export default registerAs('throttlerConfig', (): ThrottlerConfig => {
 
   return {
     ttl: seconds(_ttl),
-    limit: parseInt(
-      process.env.THROTTLER_LIMIT || (isProduction ? '100' : '150'),
-      10,
-    ),
+    limit: parseInt(process.env.THROTTLER_LIMIT || (isProduction ? '100' : '150'), 10),
   };
 });
 
@@ -30,9 +27,7 @@ export default registerAs('throttlerConfig', (): ThrottlerConfig => {
  * @param config Configuración proveniente del registro de throttler.
  * @returns Opciones listas para registrar en ThrottlerModule.forRoot.
  */
-export const createThrottlerModuleOptions = (
-  config: ThrottlerConfig,
-): ThrottlerModuleOptions => ({
+export const createThrottlerModuleOptions = (config: ThrottlerConfig): ThrottlerModuleOptions => ({
   throttlers: [
     {
       ttl: config.ttl,
