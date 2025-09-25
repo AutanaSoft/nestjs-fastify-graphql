@@ -1,3 +1,4 @@
+import { AppConfig, CORRELATION_ID_HEADER } from '@/config';
 import cors, { FastifyCorsOptions } from '@fastify/cors';
 import helmet, { FastifyHelmetOptions } from '@fastify/helmet';
 import { ConfigService } from '@nestjs/config';
@@ -6,7 +7,7 @@ import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify
 import { Logger } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
 import { AppModule } from './app.module';
-import { AppConfig, CORRELATION_ID_HEADER } from '@/config';
+import { buildGraphQLUrl, buildServerUrl } from './shared/infrastructure/utils';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter(), {
@@ -49,7 +50,11 @@ async function bootstrap() {
 
   // Iniciar la aplicación
   await app.listen(_appConfig.server.port, '0.0.0.0');
-  logger.log(`🚀 Server is running on: ${await app.getUrl()}`);
+  const serverUrl = buildServerUrl(_appConfig);
+  const graphqlUrl = buildGraphQLUrl(serverUrl);
+  logger.log(`🚀 Server is running on: ${serverUrl}`);
+  logger.log(`🚀 GraphQL is running on: ${graphqlUrl}`);
+  logger.log(`🐛 Environment: ${_appConfig.server.environment}`);
 }
 
 bootstrap().catch((err) => {
