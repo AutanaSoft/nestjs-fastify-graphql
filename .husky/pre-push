@@ -1,0 +1,4 @@
+# Ejecutar el build antes del push
+pnpm build
+# Ejecutar los tests de integración antes del push
+pnpm test
