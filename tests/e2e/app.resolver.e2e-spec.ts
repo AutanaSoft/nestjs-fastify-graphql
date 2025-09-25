@@ -1,13 +1,15 @@
-import { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
+import {
+  FastifyAdapter,
+  NestFastifyApplication,
+} from '@nestjs/platform-fastify';
 import request from 'supertest';
-import type { Server } from 'http';
 import { AppModule } from '../../src/app.module';
 import { AppConfig } from '../../src/config';
 
 describe('AppResolver (e2e)', () => {
-  let app: INestApplication;
+  let app: NestFastifyApplication;
   let appConfig: AppConfig;
 
   beforeAll(async () => {
@@ -15,8 +17,11 @@ describe('AppResolver (e2e)', () => {
       imports: [AppModule],
     }).compile();
 
-    app = moduleFixture.createNestApplication();
+    app = moduleFixture.createNestApplication<NestFastifyApplication>(
+      new FastifyAdapter(),
+    );
     await app.init();
+    await app.getHttpAdapter().getInstance().ready();
 
     const configService = app.get(ConfigService);
     appConfig = configService.getOrThrow<AppConfig>('appConfig');
@@ -45,7 +50,7 @@ describe('AppResolver (e2e)', () => {
       }
     `;
 
-    const response = await request(app.getHttpServer() as unknown as Server)
+    const response = await request(app.getHttpServer())
       .post('/graphql')
       .send({ query })
       .expect(200);
