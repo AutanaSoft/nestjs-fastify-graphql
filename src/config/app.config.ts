@@ -49,7 +49,7 @@ export default registerAs<AppConfig>(
       port: parseInt(process.env.APP_SERVER_PORT || '4200', 10),
       useGlobalPrefix: process.env.APP_SERVER_USE_GLOBAL_PREFIX === 'true',
       globalPrefix: process.env.APP_SERVER_GLOBAL_PREFIX || 'api',
-      environment: process.env.APP_SERVER_ENVIRONMENT || 'development',
+      environment: process.env.NODE_ENV || 'development',
       logLevel: (process.env.APP_SERVER_LOG_LEVEL as LogLevel) || 'debug',
     },
   }),
