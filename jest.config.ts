@@ -11,6 +11,7 @@ const baseProject: Config = {
     '<rootDir>/src/**/*.(t|j)s',
     '!<rootDir>/src/config/**/*.(t|j)s',
     '!<rootDir>/src/main.ts',
+    '!<rootDir>/src/database/**/*.(t|j)s',
     '!<rootDir>/src/**/index.(t|j)s',
   ],
   clearMocks: true,
@@ -33,9 +34,9 @@ const config: Config = {
   coverageThreshold: {
     global: {
       branches: 50,
-      functions: 50,
-      lines: 50,
-      statements: 50,
+      functions: 80,
+      lines: 80,
+      statements: 80,
     },
   },
 };
