@@ -27,7 +27,9 @@ export class AppService {
    * @throws Error Si la configuración `appConfig` no está definida o es inválida.
    */
   getAppInfo(): AppConfigDto {
-    const _config = this.configService.getOrThrow<AppConfig>('appConfig');
-    return plainToInstance(AppConfigDto, _config);
+    return plainToInstance(
+      AppConfigDto,
+      this.configService.getOrThrow<AppConfig>('appConfig'),
+    );
   }
 }
