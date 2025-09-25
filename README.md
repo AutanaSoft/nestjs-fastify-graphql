@@ -1,98 +1,211 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# 🚀 NestJS GraphQL API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+![Estado del proyecto](https://img.shields.io/badge/estado-en%20desarrollo-blue.svg)
+![Licencia MIT](https://img.shields.io/badge/licencia-MIT-green.svg)
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+API GraphQL modular construida con NestJS, Fastify y TypeORM, preparada para escalar con arquitectura hexagonal y convenciones empresariales de AutanaSoft.
 
-## Description
+## ✨ Características clave
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- Arquitectura hexagonal que separa dominio, aplicación e infraestructura para facilitar la extensión por módulos.
+- Servidor GraphQL code-first con Apollo Driver, schema auto-generado y protección por rate limiting.
+- Bootstrap con Fastify, CORS configurable, Helmet endurecido y encabezado `X-Correlation-ID` para trazabilidad.
+- Logging estructurado mediante `nestjs-pino`, con redacción automática de datos sensibles.
+- Configuración centralizada por `@nestjs/config`, validaciones tipadas y utilidades para migraciones con TypeORM.
 
-## Project setup
+## 🛠️ Tecnologías principales
 
-```bash
-$ pnpm install
-```
+- [NestJS 11](https://docs.nestjs.com/) sobre [Fastify](https://fastify.dev/)
+- [GraphQL](https://graphql.org/) con Apollo Server y generación de esquema code-first
+- [TypeORM](https://typeorm.io/) + PostgreSQL
+- [Pino](https://getpino.io/) para logging estructurado
+- [pnpm](https://pnpm.io/) como gestor de paquetes
 
-## Compile and run the project
+## 📋 Requisitos previos
 
-```bash
-# development
-$ pnpm run start
+- Node.js 20 LTS o superior
+- pnpm 9 o superior (`corepack enable`)
+- PostgreSQL 13+ accesible (local o remoto)
 
-# watch mode
-$ pnpm run start:dev
+## ⚡ Puesta en marcha rápida
 
-# production mode
-$ pnpm run start:prod
-```
+1. Clona el repositorio y accede al directorio del proyecto.
+2. Instala las dependencias:
 
-## Run tests
+   ```bash
+   pnpm install
+   ```
 
-```bash
-# unit tests
-$ pnpm run test
+3. Crea un archivo `.env` en la raíz del proyecto con los valores necesarios (ver sugerencia debajo).
+4. Levanta PostgreSQL y asegúrate de que las credenciales coinciden con las variables de entorno.
+5. Ejecuta la aplicación en modo desarrollo:
 
-# e2e tests
-$ pnpm run test:e2e
+   ```bash
+   pnpm run start:dev
+   ```
 
-# test coverage
-$ pnpm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### 🔧 Variables de entorno sugeridas
 
 ```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+APP_NAME=NestJS GraphQL API
+APP_DESCRIPTION=API GraphQL modular con NestJS y PostgreSQL
+APP_SERVER_PORT=4000
+APP_SERVER_USE_GLOBAL_PREFIX=true
+APP_SERVER_GLOBAL_PREFIX=api
+APP_SERVER_LOG_LEVEL=debug
+
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+DB_NAME=app_api_db
+DB_SYNCHRONIZE=true
+DB_LOGGING=false
+
+CORS_ALLOWED_ORIGINS=http://localhost:3000
+THROTTLER_TTL=60
+THROTTLER_LIMIT=150
+
+LOG_LEVEL=debug
+LOG_DIR=./logs
+LOG_MAX_SIZE=10
+LOG_MAX_FILES=5
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## 🗂️ Variables de entorno disponibles
 
-## Resources
+| Variable                                                                          | Descripción                                             | Valor por defecto                                         |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------- |
+| `APP_NAME`                                                                        | Nombre público de la aplicación                         | `NestJS GraphQL API`                                      |
+| `APP_DESCRIPTION`                                                                 | Descripción corta utilizada en la consulta `getAppInfo` | `API built with NestJS and GraphQL`                       |
+| `APP_SERVER_PORT`                                                                 | Puerto HTTP utilizado por Fastify                       | `4200`                                                    |
+| `APP_SERVER_USE_GLOBAL_PREFIX`                                                    | Activa prefijo global (`true`/`false`)                  | `false`                                                   |
+| `APP_SERVER_GLOBAL_PREFIX`                                                        | Prefijo usado cuando está habilitado                    | `api`                                                     |
+| `APP_SERVER_LOG_LEVEL`                                                            | Nivel de logs del núcleo (`debug`, `info`, etc.)        | `debug`                                                   |
+| `CORS_ALLOWED_ORIGINS`                                                            | Lista separada por comas de orígenes permitidos         | _(vacío)_                                                 |
+| `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME`                     | Configuración de PostgreSQL                             | `localhost`, `5432`, `postgres`, `postgres`, `app_api_db` |
+| `DB_SSL`                                                                          | Habilita TLS en la conexión                             | `false`                                                   |
+| `DB_SYNCHRONIZE`                                                                  | Auto-sincroniza entidades (solo desarrollo)             | `!production`                                             |
+| `DB_LOGGING`                                                                      | Activa logs SQL                                         | `false`                                                   |
+| `DB_RETRY_ATTEMPTS`, `DB_RETRY_DELAY`                                             | Política de reintentos de conexión                      | `3`, `3000`                                               |
+| `THROTTLER_TTL`, `THROTTLER_LIMIT`                                                | Ventana y límite de peticiones para rate limiting       | `60`, `100` (producción)                                  |
+| `LOG_LEVEL`, `LOG_DIR`, `LOG_MAX_SIZE`, `LOG_MAX_FILES`, `LOG_ROTATION_FREQUENCY` | Ajustes del logger basado en pino                       | `info`, `./logs`, `10`, `5`, `daily`                      |
 
-Check out a few resources that may come in handy when working with NestJS:
+## 🧰 Scripts disponibles
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+| Script                                    | Descripción                                                  |
+| ----------------------------------------- | ------------------------------------------------------------ |
+| `pnpm run start`                          | Levanta la aplicación en modo estándar.                      |
+| `pnpm run start:dev`                      | Ejecuta NestJS en watch mode con recarga automática.         |
+| `pnpm run start:prod`                     | Arranca la versión compilada con `NODE_ENV=production`.      |
+| `pnpm run start:debug`                    | Inicia la app en modo inspección para depuración.            |
+| `pnpm run build`                          | Compila el proyecto en `dist/`.                              |
+| `pnpm run lint`                           | Ejecuta ESLint con autofix sobre `src/` y `test/`.           |
+| `pnpm run format`                         | Formatea archivos TypeScript con Prettier.                   |
+| `pnpm run test`                           | Corre todos los tests con cobertura.                         |
+| `pnpm run test:unit`                      | Ejecuta únicamente los tests unitarios.                      |
+| `pnpm run test:e2e`                       | Ejecuta únicamente los tests end-to-end.                     |
+| `pnpm run migration:generate -- <Nombre>` | Genera una migración usando la configuración de TypeORM CLI. |
+| `pnpm run migration:run`                  | Aplica las migraciones pendientes en la base de datos.       |
+| `pnpm run migration:revert`               | Revierte la última migración aplicada.                       |
+| `pnpm run migration:show`                 | Lista el historial de migraciones.                           |
+| `pnpm run schema:sync`                    | Sincroniza el esquema (solo entornos controlados).           |
+| `pnpm run schema:drop`                    | Elimina el esquema actual de la base de datos.               |
 
-## Support
+## 🗄️ Migraciones y base de datos
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+- Las migraciones TypeORM viven en `src/database/migrations`.
+- Para generar una nueva migración con CLI:
 
-## Stay in touch
+  ```bash
+  pnpm run migration:generate -- src/database/migrations/<timestamp>-Descripcion
+  ```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+- Recuerda ejecutar `pnpm run migration:run` después de generar o actualizar entidades.
+- Para entornos productivos se recomienda fijar `DB_SYNCHRONIZE=false` y ejecutar migraciones como parte del despliegue.
 
-## License
+## ▶️ Ejecución
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+| Entorno    | Pasos                                                                                                  |
+| ---------- | ------------------------------------------------------------------------------------------------------ |
+| Desarrollo | `pnpm run start:dev` (recarga automática, GraphQL Playground local habilitado mediante Apollo Studio). |
+| Producción | `pnpm run build` seguido de `pnpm run start:prod` en un entorno con variables de entorno definidas.    |
+
+La aplicación expone un `GET /` de prueba que devuelve un saludo genérico y la API GraphQL bajo `/graphql` (o `/<prefijo>/graphql` si se habilitó el prefijo global).
+
+## 🔮 API GraphQL
+
+- Endpoint principal: `http://localhost:<puerto>/graphql`.
+- Introspection y ordenamiento del esquema se desactivan automáticamente en producción.
+- El acceso al Playground está deshabilitado por defecto; se recomienda usar [Apollo Studio](https://studio.apollographql.com/).
+- Todas las operaciones GraphQL están protegidas por el guard `GqlThrottlerGuard`, que respeta el encabezado `X-Correlation-ID`.
+
+Consulta de ejemplo:
+
+```graphql
+query GetAppInfo {
+  getAppInfo {
+    name
+    description
+    version
+    server {
+      host
+      port
+      environment
+      logLevel
+    }
+  }
+}
+```
+
+## 🏗️ Arquitectura del proyecto
+
+El proyecto sigue los principios de arquitectura hexagonal, separando dominio, aplicación e infraestructura. Cada módulo de negocio debe replicar la organización base:
+
+```
+src/
+├─ app.module.ts
+├─ app.resolver.ts
+├─ app.service.ts
+├─ config/
+│  ├─ app.config.ts
+│  ├─ cors.config.ts
+│  ├─ database.config.ts
+│  ├─ graphql.config.ts
+│  ├─ helmet.config.ts
+│  └─ logger.config.ts
+├─ database/
+│  ├─ config/typeorm.config.ts
+│  └─ migrations/
+├─ shared/
+│  ├─ applications/dto/
+│  ├─ domain/
+│  └─ infrastructure/
+└─ main.ts
+```
+
+Para nuevos módulos se recomienda mantener la estructura `application/`, `domain/`, `infrastructure/` y exponer resolvers o controladores como adaptadores.
+
+## 🛡️ Observabilidad y seguridad
+
+- **Logging**: `nestjs-pino` escribe logs estructurados, redactando claves sensibles y enriqueciendo cada entrada con el `correlationId`.
+- **Correlation ID**: el servidor genera o respeta el encabezado `X-Correlation-ID` en cada solicitud y lo replica en la respuesta.
+- **CORS**: configurable con `CORS_ALLOWED_ORIGINS`, habilitando orígenes adicionales en producción.
+- **Helmet**: cabeceras de seguridad basadas en CSP mínima; se endurecen automáticamente en producción.
+- **Rate limiting**: el guard `GqlThrottlerGuard` utiliza `THROTTLER_TTL` y `THROTTLER_LIMIT` para controlar la frecuencia de consultas GraphQL.
+
+## ✅ Pruebas y calidad
+
+- `pnpm run test` genera reporte de cobertura en `coverage/`.
+- `pnpm run test:unit` y `pnpm run test:e2e` separan los ciclos de validación unitarios y end-to-end.
+- `pnpm run lint` mantiene el estilo de código alineado con ESLint y `pnpm run format` aplica Prettier.
+
+## 📫 Contacto
+
+- Autor: **AutanaSoft**
+- Correo: [admin@autanasoft.com](mailto:admin@autanasoft.com)
+- Repositorio: [https://github.com/AutanaSoft/nestjs-graphql-api](https://github.com/AutanaSoft/nestjs-graphql-api)
+
+## 📄 Licencia
+
+Este proyecto se distribuye bajo la licencia [MIT](./LICENSE).

@@ -1,10 +1,17 @@
 {
   "name": "nestjs-graphql-api",
   "version": "0.0.1",
-  "description": "",
-  "author": "",
-  "private": true,
-  "license": "UNLICENSED",
+  "description": "API GraphQL modular desarrollada con NestJS y PostgreSQL.",
+  "author": "AutanaSoft <admin@autanasoft.com>",
+  "private": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AutanaSoft/nestjs-graphql-api.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AutanaSoft/nestjs-graphql-api/issues"
+  },
   "scripts": {
     "start:prod": "NODE_ENV=production node dist/main",
     "start:dev": "nest start --watch",
@@ -16,6 +23,12 @@
     "test": "rimraf coverage .tmp && jest --coverage",
     "test:e2e": "jest --selectProjects e2e --coverage",
     "test:unit": "jest --selectProjects unit --coverage",
+    "migration:generate": "typeorm-ts-node-commonjs migration:generate -d src/database/config/typeorm.config.ts",
+    "migration:run": "typeorm-ts-node-commonjs migration:run -d src/database/config/typeorm.config.ts",
+    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/database/config/typeorm.config.ts",
+    "migration:show": "typeorm-ts-node-commonjs migration:show -d src/database/config/typeorm.config.ts",
+    "schema:sync": "typeorm-ts-node-commonjs schema:sync -d src/database/config/typeorm.config.ts",
+    "schema:drop": "typeorm-ts-node-commonjs schema:drop -d src/database/config/typeorm.config.ts",
     "prepare": "husky"
   },
   "dependencies": {
