@@ -1,10 +1,19 @@
 import loggerConfig, { createLoggerModuleOptions } from '@config/logger.config';
+import { ApolloDriver } from '@nestjs/apollo';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { GraphQLModule } from '@nestjs/graphql';
 import { LoggerModule } from 'nestjs-pino';
 import { AppController } from './app.controller';
+import { AppResolver } from './app.resolver';
 import { AppService } from './app.service';
-import { appConfig, corsConfig, helmetConfig } from './config';
+import {
+  appConfig,
+  corsConfig,
+  createGraphQLModuleOptions,
+  graphqlConfig,
+  helmetConfig,
+} from './config';
 
 @Module({
   imports: [
@@ -18,8 +27,14 @@ import { appConfig, corsConfig, helmetConfig } from './config';
       inject: [loggerConfig.KEY],
       useFactory: createLoggerModuleOptions,
     }),
+    GraphQLModule.forRootAsync({
+      imports: [ConfigModule.forFeature(graphqlConfig)],
+      inject: [graphqlConfig.KEY],
+      driver: ApolloDriver,
+      useFactory: createGraphQLModuleOptions,
+    }),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, AppResolver],
 })
 export class AppModule {}

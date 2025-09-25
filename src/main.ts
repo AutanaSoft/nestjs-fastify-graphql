@@ -6,6 +6,7 @@ import {
   FastifyAdapter,
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
+import { Logger } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
 import { AppModule } from './app.module';
 import { AppConfig, CORRELATION_ID_HEADER } from './config';
@@ -18,6 +19,10 @@ async function bootstrap() {
       bufferLogs: true,
     },
   );
+
+  // Habilitar el logger de NestJS
+  const logger = app.get(Logger);
+  app.useLogger(logger);
 
   // Obtener configuración de la aplicación
   const configService = app.get(ConfigService);
@@ -55,7 +60,7 @@ async function bootstrap() {
 
   // Iniciar la aplicación
   await app.listen(_appConfig.server.port, '0.0.0.0');
-  console.log('App Config:', _appConfig);
+  logger.log(`🚀 Server is running on: ${await app.getUrl()}`);
 }
 
 bootstrap().catch((err) => {
