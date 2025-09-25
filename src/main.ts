@@ -9,7 +9,7 @@ import {
 import { Logger } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
 import { AppModule } from './app.module';
-import { AppConfig, CORRELATION_ID_HEADER } from './config';
+import { AppConfig, CORRELATION_ID_HEADER } from '@/config';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(

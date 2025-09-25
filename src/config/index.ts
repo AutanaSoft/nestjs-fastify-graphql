@@ -16,3 +16,9 @@ export {
   default as loggerConfig,
   type LoggerConfig,
 } from './logger.config';
+
+export {
+  default as databaseConfig,
+  type DatabaseConfig,
+  createTypeOrmModuleOptions,
+} from './database.config';

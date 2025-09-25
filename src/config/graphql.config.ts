@@ -6,37 +6,32 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import { join } from 'node:path';
 
 /**
- * GraphQL configuration interface defining Apollo Server options.
- * Controls development features and schema generation behavior.
+ * @public Configuración base para la inicialización del servidor GraphQL.
+ * @property {boolean} isProduction Define si la aplicación está en modo producción.
+ * @property {boolean} introspection Habilita la introspección del esquema.
+ * @property {boolean} sortSchema Ordena el esquema para lecturas determinísticas.
+ * @property {boolean} playground Controla la disponibilidad del playground.
+ * @property {boolean} useGlobalPrefix Aplica el prefijo global de NestJS a las rutas GraphQL.
  */
 export type GraphQLConfig = {
-  /** Indicates if the application is running in production mode */
   isProduction: boolean;
-  /** Enable GraphQL introspection queries (typically disabled in production) */
   introspection: boolean;
-  /** Sort schema fields alphabetically for consistent output */
   sortSchema: boolean;
-  /** Enable GraphQL Playground UI (deprecated in favor of Apollo Studio) */
   playground: boolean;
-  /** Use global prefix for GraphQL endpoint */
   useGlobalPrefix: boolean;
 };
 
+/**
+ * @public Contexto compartido entre resolvers de GraphQL con acceso a la solicitud y respuesta.
+ */
 export interface GraphQLContext {
-  req: FastifyRequest;
-  res: FastifyReply;
-}
-
-export interface FastifyContext {
-  request: FastifyRequest;
-  reply: FastifyReply;
+  readonly req: FastifyRequest;
+  readonly res: FastifyReply;
 }
 
 /**
- * GraphQL configuration factory registered under 'graphqlConfig' namespace.
- * Provides environment-aware defaults for Apollo Server configuration.
- *
- * @returns GraphQLConfig object with environment-specific settings
+ * @public Factoría de configuración que expone los parámetros del módulo GraphQL.
+ * @returns {GraphQLConfig} Configuración evaluada según el entorno.
  */
 export default registerAs('graphqlConfig', (): GraphQLConfig => {
   const isProduction = process.env.NODE_ENV === 'production';
@@ -51,11 +46,9 @@ export default registerAs('graphqlConfig', (): GraphQLConfig => {
 });
 
 /**
- * Creates Apollo Server configuration options from GraphQL config.
- * Configures schema generation, development features, and server plugins.
- *
- * @param config - GraphQL configuration object with feature flags
- * @returns Apollo Driver configuration options (excluding driver property)
+ * @public Crea las opciones del módulo GraphQL para el `ApolloDriver`.
+ * @param {GraphQLConfig} config Configuración operativa de GraphQL.
+ * @returns {Omit<ApolloDriverConfig, 'driver'>} Opciones listas para el módulo GraphQL de NestJS.
  */
 export const createGraphQLModuleOptions = (
   config: GraphQLConfig,
@@ -65,10 +58,11 @@ export const createGraphQLModuleOptions = (
   sortSchema: config.sortSchema,
   playground: config.playground,
   useGlobalPrefix: config.useGlobalPrefix,
-  context: ({ request, reply }: FastifyContext): GraphQLContext => ({
+  context: (request: FastifyRequest, reply: FastifyReply): GraphQLContext => ({
     req: request,
     res: reply,
   }),
+
   plugins: [
     config.isProduction
       ? ApolloServerPluginLandingPageDisabled()

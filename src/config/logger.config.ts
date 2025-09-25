@@ -4,27 +4,24 @@ import { IncomingMessage } from 'node:http';
 import { join } from 'node:path';
 
 /**
- * Configuración del sistema de logging de la aplicación.
- * Define los parámetros para el comportamiento del logger basado en Pino.
+ * Describe la configuración necesaria para inicializar el registro HTTP basado en pino.
+ * @remarks
+ * Los valores se derivan de variables de entorno prefijadas con `LOG_`.
+ * @public
  */
 export type LoggerConfig = {
-  /** Indica si la aplicación está ejecutándose en modo producción */
   isProduction: boolean;
-  /** Nivel mínimo de logging que será registrado */
   logLevel: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
-  /** Directorio donde se almacenarán los archivos de log */
   logDir: string;
-  /** Tamaño máximo de cada archivo de log en MB */
   logMaxSize: number;
-  /** Número máximo de archivos de log a mantener */
   logMaxFiles: number;
-  /** Frecuencia de rotación de archivos de log (daily, weekly, etc.) */
   logRotationFrequency?: string;
 };
 
 /**
- * Claves sensibles que deben ser censuradas en los logs por razones de seguridad.
- * Incluye patrones para contraseñas, tokens de autorización y cookies.
+ * Conjunto de paths redactados automáticamente para evitar exponer datos sensibles.
+ * @remarks
+ * Se aplica sobre las propiedades de las solicitudes y respuestas capturadas por pino.
  */
 const SENSITIVE_KEYS: readonly string[] = [
   '*.password',
@@ -42,10 +39,8 @@ const SENSITIVE_KEYS: readonly string[] = [
 ];
 
 /**
- * Factory de configuración del logger registrada con NestJS Config.
- * Carga la configuración desde variables de entorno con valores por defecto.
- *
- * @returns Configuración del logger con valores parseados desde el entorno
+ * Registra la configuración principal del logger bajo el espacio `loggerConfig`.
+ * @returns Configuración tipada construida a partir de las variables de entorno.
  */
 export default registerAs(
   'loggerConfig',
@@ -60,11 +55,9 @@ export default registerAs(
 );
 
 /**
- * Crea las opciones de configuración para el módulo Pino HTTP logger.
- * Configura el transporte, formato, redacción de datos sensibles y propiedades personalizadas.
- *
- * @param config - Configuración del logger
- * @returns Parámetros de configuración para nestjs-pino
+ * Traduce la configuración tipada en opciones para `nestjs-pino`.
+ * @param config Valores de configuración del logger.
+ * @returns Parámetros compatibles con el módulo de logging HTTP.
  */
 export const createLoggerModuleOptions = (config: LoggerConfig): Params => ({
   pinoHttp: {
