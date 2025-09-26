@@ -63,7 +63,7 @@ applyTo: '**'
 - Document: public classes, public methods/functions, use cases, repository interfaces, DTOs, domain/infrastructure mappers and custom errors.
 - Keep a concise one-line summary, optional description and then tags.
 - Do not duplicate types already expressed in TypeScript; use JSDoc to clarify intent, constraints and thrown errors.
-- Recommended tags: @param, @returns, @throws, @remarks, @example, @deprecated, @see, @public/@internal, @typeParam (for generics).
+- Recommended tags: @param, @returns, @throws, @remarks, @deprecated, @see, @public/@internal, @typeParam (for generics).
 - GraphQL/Nest: document resolvers briefly; do not repeat decorator metadata in JSDoc.
 - Do not include examples in this document section.
 

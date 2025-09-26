@@ -1,3 +1,13 @@
+import {
+  appConfig,
+  corsConfig,
+  createGraphQLModuleOptions,
+  createThrottlerModuleOptions,
+  graphqlConfig,
+  helmetConfig,
+  throttlerConfig,
+  validationPipeConfig,
+} from '@/config';
 import loggerConfig, { createLoggerModuleOptions } from '@config/logger.config';
 import { ApolloDriver } from '@nestjs/apollo';
 import { Module } from '@nestjs/common';
@@ -9,14 +19,8 @@ import { LoggerModule } from 'nestjs-pino';
 import { AppController } from './app.controller';
 import { AppResolver } from './app.resolver';
 import { AppService } from './app.service';
-import {
-  appConfig,
-  corsConfig,
-  createGraphQLModuleOptions,
-  graphqlConfig,
-  helmetConfig,
-} from './config';
-import throttlerConfig, { createThrottlerModuleOptions } from './config/throttler.config';
+import { DatabaseModule } from './database/database.module';
+import { UsersModule } from './modules/users/users.module';
 import { GqlThrottlerGuard } from './shared/infrastructure/guards/gql-throttler.guard';
 
 @Module({
@@ -24,7 +28,7 @@ import { GqlThrottlerGuard } from './shared/infrastructure/guards/gql-throttler.
     ConfigModule.forRoot({
       envFilePath: ['.env'],
       isGlobal: true,
-      load: [appConfig, corsConfig, helmetConfig],
+      load: [appConfig, corsConfig, helmetConfig, validationPipeConfig],
     }),
     LoggerModule.forRootAsync({
       imports: [ConfigModule.forFeature(loggerConfig)],
@@ -42,6 +46,8 @@ import { GqlThrottlerGuard } from './shared/infrastructure/guards/gql-throttler.
       inject: [throttlerConfig.KEY],
       useFactory: createThrottlerModuleOptions,
     }),
+    DatabaseModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [

@@ -1,6 +1,7 @@
 import { AppConfig, CORRELATION_ID_HEADER } from '@/config';
 import cors, { FastifyCorsOptions } from '@fastify/cors';
 import helmet, { FastifyHelmetOptions } from '@fastify/helmet';
+import { ValidationPipe, ValidationPipeOptions } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -23,6 +24,8 @@ async function bootstrap() {
   const _appConfig = configService.getOrThrow<AppConfig>('appConfig');
   const _corsConfig = configService.getOrThrow<FastifyCorsOptions>('corsConfig');
   const _helmetOptions = configService.getOrThrow<FastifyHelmetOptions>('helmetConfig');
+  const _validationPipeOptions =
+    configService.getOrThrow<ValidationPipeOptions>('validationPipeConfig');
 
   // Obtener instancia del servidor Fastify
   const fastifyServer = app.getHttpAdapter().getInstance();
@@ -47,6 +50,9 @@ async function bootstrap() {
   // Habilitar CORS si está configurado
   await app.register(cors, _corsConfig);
   await app.register(helmet, _helmetOptions);
+
+  // Configurar validación global
+  app.useGlobalPipes(new ValidationPipe(_validationPipeOptions));
 
   // Iniciar la aplicación
   await app.listen(_appConfig.server.port, '0.0.0.0');

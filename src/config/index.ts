@@ -18,3 +18,9 @@ export {
   type DatabaseConfig,
   createTypeOrmModuleOptions,
 } from './database.config';
+export { default as validationPipeConfig } from './validation-pipe.config';
+export {
+  default as throttlerConfig,
+  type ThrottlerConfig,
+  createThrottlerModuleOptions,
+} from './throttler.config';

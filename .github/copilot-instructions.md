@@ -49,11 +49,17 @@ What to do:
 ## Language Guidelines
 
 - Always respond in Spanish when communicating with the developer
-- Use Spanish for all code and technical documentation:
+- Use Spanish for all technical documentation:
   - Comments in source code
   - JSDoc and function documentation
   - Component descriptions
   - Type and interface definitions
+- Use English for:
+  - Code (variable names, function names, class names, messages, etc.)
+  - Configuration files (e.g., `.eslintrc.json`, `tsconfig.json`, etc.)
+  - File names and directory names
+  - Commit messages
+  - Pull request titles and descriptions
 
 ## File Creation Guidelines
 
