@@ -12,7 +12,7 @@ import loggerConfig, { createLoggerModuleOptions } from '@config/logger.config';
 import { ApolloDriver } from '@nestjs/apollo';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
@@ -21,6 +21,7 @@ import { AppResolver } from './app.resolver';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { UsersModule } from './modules/users/users.module';
+import { GraphQLExceptionFilter } from './shared/infrastructure/filters';
 import { GqlThrottlerGuard } from './shared/infrastructure/guards/gql-throttler.guard';
 
 @Module({
@@ -51,6 +52,10 @@ import { GqlThrottlerGuard } from './shared/infrastructure/guards/gql-throttler.
   ],
   controllers: [AppController],
   providers: [
+    {
+      provide: APP_FILTER,
+      useClass: GraphQLExceptionFilter,
+    },
     {
       provide: APP_GUARD,
       useClass: GqlThrottlerGuard,

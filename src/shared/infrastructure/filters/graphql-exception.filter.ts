@@ -1,4 +1,3 @@
-import { GraphQLContext } from '@/config/graphql.config';
 import { BaseDomainError } from '@/shared/domain/errors';
 import {
   asHttpException,
@@ -6,10 +5,8 @@ import {
   mapHttpStatusToGraphqlCode,
   pickHttpMessage,
   toExtensions,
-  withCorrelationId,
 } from '@/shared/infrastructure/utils';
-import { ArgumentsHost, Catch, ExceptionFilter, HttpStatus } from '@nestjs/common';
-import { GqlArgumentsHost } from '@nestjs/graphql';
+import { Catch, ExceptionFilter, HttpStatus } from '@nestjs/common';
 import { GraphQLError } from 'graphql';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { InfrastructureError } from '../errors';
@@ -40,10 +37,7 @@ export class GraphQLExceptionFilter implements ExceptionFilter {
    * @param exception - The caught exception to process
    * @param host - The arguments host containing execution context
    */
-  catch(exception: unknown, host: ArgumentsHost): void {
-    // Try to extract correlation ID from different contexts
-    const correlationId = this.extractCorrelationId(host);
-
+  catch(exception: unknown): void {
     // Handle our custom GraphQL errors (Domain, Application, Infrastructure)
     if (exception instanceof BaseDomainError || exception instanceof InfrastructureError) {
       // Selective logging: Only log infrastructure errors (domain errors are expected and not logged)
@@ -52,28 +46,24 @@ export class GraphQLExceptionFilter implements ExceptionFilter {
           message: exception.message,
           extensions: exception.extensions,
           stack: exception.stack,
-          correlationId,
         });
       }
 
       // Add correlation ID to existing extensions and throw
-      const enriched = withCorrelationId(exception as GraphQLError, correlationId);
-      throw enriched;
+      throw exception;
     }
 
     // Handle existing GraphQL errors (pass through with correlation ID)
     if (exception instanceof GraphQLError) {
-      const enriched = withCorrelationId(exception, correlationId);
       // Adjust log level depending on code
-      const code = (enriched.extensions?.code as string) ?? 'UNKNOWN';
+      const code = (exception.extensions?.code as string) ?? 'UNKNOWN';
       const level: 'info' | 'warn' = code === 'BAD_USER_INPUT' ? 'info' : 'warn';
       this.logger[level]({
-        message: enriched.message,
-        extensions: enriched.extensions,
-        stack: enriched.stack,
-        correlationId,
+        message: exception.message,
+        extensions: exception.extensions,
+        stack: exception.stack,
       });
-      throw enriched;
+      throw exception;
     }
 
     // For other types of errors, normalize them
@@ -83,14 +73,12 @@ export class GraphQLExceptionFilter implements ExceptionFilter {
     this.logger.error({
       ...errorResponse,
       stack: exception instanceof Error ? exception.stack : undefined,
-      correlationId,
     });
 
     // Create GraphQL formatted error
     const graphqlError = buildGraphQLError(errorResponse.message, {
       code: errorResponse.code,
       status: errorResponse.status,
-      correlationId,
       extensions: errorResponse.extensions,
     });
 
@@ -129,22 +117,4 @@ export class GraphQLExceptionFilter implements ExceptionFilter {
       },
     };
   }
-
-  /**
-   * Extracts correlation ID from GraphQL/Apollo Express context
-   * @param host The arguments host containing execution context
-   * @returns Correlation ID from headers or fallback
-   */
-  private extractCorrelationId(host: ArgumentsHost): string {
-    const ctx = GqlArgumentsHost.create(host);
-    const gqlContext = ctx.getContext<GraphQLContext>();
-    const request = gqlContext?.req as {
-      id?: string;
-      headers?: Record<string, string | string[]>;
-    };
-    const headerId = (request?.headers?.['x-correlation-id'] as string) || undefined;
-    return request?.id || headerId || 'no-correlation-id';
-  }
-
-  // enrichErrorWithCorrelationId has been deprecated in favor of withCorrelationId util
 }

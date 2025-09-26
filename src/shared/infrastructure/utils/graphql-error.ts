@@ -4,7 +4,6 @@ interface BuildGqlErrorOptions {
   path?: readonly (string | number)[];
   code: string;
   status: number;
-  correlationId: string;
   extensions?: Record<string, unknown>;
 }
 
@@ -18,7 +17,6 @@ export function buildGraphQLError(message: string, opts: BuildGqlErrorOptions): 
       code: opts.code,
       statusCode: opts.status,
       ...(opts.extensions ?? {}),
-      correlationId: opts.correlationId,
     },
   });
 }
