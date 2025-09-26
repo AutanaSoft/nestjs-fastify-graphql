@@ -8,7 +8,7 @@ import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify
 import { Logger } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
 import { AppModule } from './app.module';
-import { buildGraphQLUrl, buildServerUrl } from './shared/infrastructure/utils';
+import { buildGraphQLUrl, buildServerUrl } from './shared/applications/utils';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter(), {

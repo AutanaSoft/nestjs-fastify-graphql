@@ -1,4 +1,3 @@
-import bcrypt from 'bcryptjs';
 import {
   BeforeInsert,
   BeforeUpdate,
@@ -8,6 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { HashUtils } from '@shared/applications/utils/hash.utils';
 import { UserRole, UserStatus } from '../enums/user.enum';
 
 @Entity('users')
@@ -18,7 +18,7 @@ export class UserEntity {
   @Column({ unique: true, length: 64 })
   email: string;
 
-  @Column({ length: 20 })
+  @Column({ unique: true, length: 20 })
   userName: string;
 
   @Column({ length: 64 })
@@ -40,12 +40,11 @@ export class UserEntity {
   @BeforeUpdate()
   async hashPassword(): Promise<void> {
     if (this.password) {
-      const salt = await bcrypt.genSalt(12);
-      this.password = await bcrypt.hash(this.password, salt);
+      this.password = await HashUtils.hashPassword(this.password);
     }
   }
 
   async validatePassword(password: string): Promise<boolean> {
-    return await bcrypt.compare(password, this.password);
+    return await HashUtils.comparePassword(password, this.password);
   }
 }

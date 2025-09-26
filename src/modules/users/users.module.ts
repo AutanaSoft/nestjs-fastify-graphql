@@ -1,3 +1,4 @@
+import { SharedModule } from '@/shared/shared.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CreateUserUseCase } from './applications/use-cases';
@@ -7,7 +8,7 @@ import { UserTypeOrmAdapter } from './infrastructure/adapters';
 import { UserResolvers } from './infrastructure/resolvers';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserEntity])],
+  imports: [TypeOrmModule.forFeature([UserEntity]), SharedModule],
   exports: [TypeOrmModule],
   providers: [
     {

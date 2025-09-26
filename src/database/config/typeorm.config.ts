@@ -1,3 +1,4 @@
+import 'tsconfig-paths/register';
 import { DataSource } from 'typeorm';
 
 const isProduction = process.env.NODE_ENV === 'production';
