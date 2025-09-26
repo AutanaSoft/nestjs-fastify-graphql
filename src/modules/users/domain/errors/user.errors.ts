@@ -1,7 +1,7 @@
-import { BaseDomainError } from '@/shared/domain/errors/base-domain.exception';
+import { DomainBaseError } from '@/shared/domain/errors/domain-base.error';
 import { GraphQLErrorOptions } from 'graphql';
 
-export class UserNotFoundError extends BaseDomainError {
+export class UserNotFoundError extends DomainBaseError {
   constructor(message?: string, options?: GraphQLErrorOptions) {
     super(message || 'User not found', {
       ...options,

@@ -6,7 +6,7 @@ import { GraphQLError, GraphQLErrorOptions } from 'graphql';
  * Prefer keeping pure domain errors decoupled from GraphQL and map them at the infrastructure layer.
  * This class ensures the prototype chain is correctly set and the error name matches the class name.
  */
-export class BaseDomainError extends GraphQLError {
+export class DomainBaseError extends GraphQLError {
   /**
    * Create a new BaseDomainError.
    * @param message Human-readable error message.

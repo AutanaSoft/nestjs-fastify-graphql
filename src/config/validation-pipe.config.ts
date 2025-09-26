@@ -2,7 +2,6 @@ import { HttpStatus, ValidationPipeOptions } from '@nestjs/common';
 import { registerAs } from '@nestjs/config';
 import { ValidationError as ClassValidatorError } from 'class-validator';
 import { GraphQLError } from 'graphql';
-import { mapHttpStatusToGraphqlCode } from '@/shared/infrastructure/utils/graphql-codes';
 
 /**
  * Describe los errores agrupados por campo devueltos por el pipe de validación.
@@ -20,11 +19,10 @@ interface ValidationPipeErrorItem {
 class ValidationPipeError extends GraphQLError {
   constructor(public readonly validationErrors: ValidationPipeErrorItem[]) {
     const message = validationErrors[0]?.messages[0] ?? 'Data validation failed';
-    const code = mapHttpStatusToGraphqlCode(HttpStatus.BAD_REQUEST);
 
     super(message, {
       extensions: {
-        code,
+        code: 'BAD_REQUEST',
         status: HttpStatus.BAD_REQUEST,
         validationErrors,
       },

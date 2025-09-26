@@ -5,7 +5,6 @@ export enum UserRole {
   USER = 'user',
   GUEST = 'guest',
 }
-
 registerEnumType(UserRole, { name: 'UserRole', description: 'Roles assigned to users' });
 
 export enum UserStatus {
@@ -14,5 +13,4 @@ export enum UserStatus {
   SUSPENDED = 'suspended',
   BANNED = 'banned',
 }
-
 registerEnumType(UserStatus, { name: 'UserStatus', description: 'Status of users in the system' });

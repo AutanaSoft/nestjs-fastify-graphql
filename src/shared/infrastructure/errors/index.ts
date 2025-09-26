@@ -1,1 +1,1 @@
-export * from './infrastructure.errors';
+export * from './infrastructure-base.errors';

@@ -1,29 +1,23 @@
-import { BaseDomainError } from '@/shared/domain/errors';
-import {
-  asHttpException,
-  mapHttpStatusToGraphqlCode,
-  pickHttpMessage,
-  toExtensions,
-} from '@/shared/infrastructure/utils';
-import { Catch, ExceptionFilter, HttpStatus } from '@nestjs/common';
+import { ApplicationBaseError } from '@/shared/applications/errors';
+import { DomainBaseError } from '@/shared/domain/errors';
+import { Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
 import { GraphQLError } from 'graphql';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { InfrastructureError } from '../errors';
+import { InfrastructureBaseError } from '../errors';
 
 /**
- * Normalized error response structure
+ * @internal
+ * @remarks Representa la estructura normalizada que se expone como error en GraphQL.
  */
 interface ErrorResponse {
-  status: HttpStatus;
   message: string;
-  code: string;
-  extensions?: Record<string, unknown>;
+  extensions: {
+    code: string;
+    status: HttpStatus;
+    [key: string]: unknown;
+  };
 }
 
-/**
- * Global GraphQL exception filter following NestJS best practices
- * Handles all unhandled exceptions and transforms them into appropriate GraphQL errors
- */
 @Catch()
 export class GraphQLExceptionFilter implements ExceptionFilter {
   constructor(
@@ -32,84 +26,96 @@ export class GraphQLExceptionFilter implements ExceptionFilter {
   ) {}
 
   /**
-   * Catches and processes all exceptions according to NestJS exception filter pattern
-   * @param exception - The caught exception to process
-   * @param host - The arguments host containing execution context
+   * @public
+   * @remarks Gestiona cualquier excepción lanzada en el flujo GraphQL y la transforma a un formato estándar.
+   * @param exception Excepción recibida desde el resolver o capa de infraestructura.
    */
   catch(exception: unknown): void {
-    // Handle our custom GraphQL errors (Domain, Application, Infrastructure)
-    if (exception instanceof BaseDomainError || exception instanceof InfrastructureError) {
-      // Selective logging: Only log infrastructure errors (domain errors are expected and not logged)
-      if (exception instanceof InfrastructureError) {
+    // Manejo de errores personalizados del dominio, aplicación e infraestructura
+    if (
+      exception instanceof DomainBaseError ||
+      exception instanceof ApplicationBaseError ||
+      exception instanceof InfrastructureBaseError
+    ) {
+      // Registro selectivo: únicamente se registran errores que no provienen del dominio
+      if (!(exception instanceof DomainBaseError)) {
         this.logger.error({
           message: exception.message,
           extensions: exception.extensions,
-          stack: exception.stack,
+          stack: exception instanceof Error ? exception.stack : undefined,
         });
       }
 
-      // Add correlation ID to existing extensions and throw
       throw exception;
     }
 
-    // Handle existing GraphQL errors (pass through with correlation ID)
+    // Manejo de errores nativos de GraphQL preservando metadatos
     if (exception instanceof GraphQLError) {
-      // Adjust log level depending on code
-      const code = (exception.extensions?.code as string) ?? 'UNKNOWN';
-      const level: 'info' | 'warn' = code === 'BAD_USER_INPUT' ? 'info' : 'warn';
-      this.logger[level]({
+      this.logger.warn({
         message: exception.message,
         extensions: exception.extensions,
         stack: exception.stack,
       });
+
       throw exception;
     }
 
-    // For other types of errors, normalize them
+    // Para el resto de errores se realiza una normalización del mensaje y sus extensiones
     const errorResponse = this.normalizeError(exception);
 
-    // Log error details for non-GraphQL errors
+    // Registro de detalles para errores que no provienen de GraphQL
     this.logger.error({
       ...errorResponse,
       stack: exception instanceof Error ? exception.stack : undefined,
     });
 
-    throw new GraphQLError(errorResponse.message, {
+    // Creación del error con el formato requerido por GraphQL
+    const graphqlError = new GraphQLError(errorResponse.message, {
       extensions: {
-        code: errorResponse.code,
-        statusCode: errorResponse.status,
-        ...(errorResponse.extensions ?? {}),
+        ...errorResponse.extensions,
       },
     });
+
+    throw graphqlError;
   }
 
   /**
-   * Normalizes non-GraphQL errors into a consistent format
-   * @param exception The caught exception
-   * @returns Normalized error response
+   * @remarks Convierte excepciones de NestJS u otras fuentes en un objeto compatible con GraphQL.
+   * @param exception Excepción desconocida a estandarizar.
+   * @returns ErrorResponse con campos listos para exponerse en GraphQL.
    */
   private normalizeError(exception: unknown): ErrorResponse {
-    // Handle NestJS HTTP exceptions
-    const http = asHttpException(exception);
-    if (http) {
-      const response = http.getResponse() as string | Record<string, unknown>;
-      const status = http.getStatus();
-      const message = pickHttpMessage(response, http.message);
-      const code = mapHttpStatusToGraphqlCode(status);
+    // Manejo de excepciones HTTP propias de NestJS
+    if (exception instanceof HttpException) {
+      const response = exception.getResponse() as string | Record<string, unknown>;
+
+      let message: string;
+      if (typeof response === 'string') {
+        message = response;
+      } else if (typeof response.message === 'string') {
+        message = response.message;
+      } else if (Array.isArray(response.message)) {
+        message = (response.message as string[]).join(', ');
+      } else {
+        message = exception.message;
+      }
+
       return {
-        status,
         message: String(message),
-        code,
-        extensions: toExtensions(response),
+        extensions: {
+          status: exception.getStatus(),
+          code: exception.constructor.name.replace('Exception', '').toUpperCase(),
+          extensions: typeof response === 'object' ? response : {},
+        },
       };
     }
 
-    // Handle unknown errors
+    // Manejo de errores desconocidos
     return {
-      status: HttpStatus.INTERNAL_SERVER_ERROR,
       message: exception instanceof Error ? exception.message : 'Internal server error',
-      code: 'INTERNAL_SERVER_ERROR',
       extensions: {
+        code: 'INTERNAL_SERVER_ERROR',
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
         timestamp: new Date().toISOString(),
         error: exception instanceof Error ? exception.constructor.name : 'Unknown Error',
       },
