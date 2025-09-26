@@ -1,5 +1,3 @@
-export * from './error-utils';
-export * from './graphql-codes';
-export * from './graphql-error';
-export * from './http-exception';
+export * from './graphql-error.utils';
+export * from './http-exception.utils';
 export * from './url.utils';

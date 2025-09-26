@@ -1,7 +1,6 @@
 import { BaseDomainError } from '@/shared/domain/errors';
 import {
   asHttpException,
-  buildGraphQLError,
   mapHttpStatusToGraphqlCode,
   pickHttpMessage,
   toExtensions,
@@ -75,14 +74,13 @@ export class GraphQLExceptionFilter implements ExceptionFilter {
       stack: exception instanceof Error ? exception.stack : undefined,
     });
 
-    // Create GraphQL formatted error
-    const graphqlError = buildGraphQLError(errorResponse.message, {
-      code: errorResponse.code,
-      status: errorResponse.status,
-      extensions: errorResponse.extensions,
+    throw new GraphQLError(errorResponse.message, {
+      extensions: {
+        code: errorResponse.code,
+        statusCode: errorResponse.status,
+        ...(errorResponse.extensions ?? {}),
+      },
     });
-
-    throw graphqlError;
   }
 
   /**
