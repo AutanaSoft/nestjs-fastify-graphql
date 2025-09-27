@@ -8,7 +8,7 @@ import { UserTypeOrmAdapter } from './infrastructure/adapters';
 import { UserResolvers } from './infrastructure/resolvers';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserEntity]), SharedModule],
+  imports: [SharedModule, TypeOrmModule.forFeature([UserEntity])],
   exports: [TypeOrmModule],
   providers: [
     {

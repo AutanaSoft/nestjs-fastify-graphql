@@ -3,12 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { EntityNotFoundError, QueryFailedError, Repository } from 'typeorm';
 
-import {
-  UserAlreadyExistsError,
-  UserForeignKeyViolationError,
-  UserNotFoundError,
-} from '@/modules/users/domain/errors/user.errors';
-import { DataBaseError } from '@/shared/domain/errors';
+import { UserNotFoundError } from '@/modules/users/domain/errors/user.errors';
+import { HandlerOrmErrorsService } from '@/shared/applications/services/handler-orm-errors.service';
 import { UserEntity } from '../../domain/entities';
 import { UserRepository } from '../../domain/repository';
 import { UserCreateType, UserUpdateType } from '../../domain/types';
@@ -20,6 +16,7 @@ export class UserTypeOrmAdapter implements UserRepository {
     private readonly logger: PinoLogger,
     @InjectRepository(UserEntity)
     private userRepository: Repository<UserEntity>,
+    private readonly handlerOrmErrorsService: HandlerOrmErrorsService,
   ) {}
 
   async create(user: UserCreateType): Promise<UserEntity> {
@@ -30,44 +27,13 @@ export class UserTypeOrmAdapter implements UserRepository {
       this.logger.info({ id: saved.id, email: saved.email }, 'User created');
       return saved;
     } catch (err) {
-      if (this.isUniqueViolation(err)) {
-        this.logger.warn(
-          { email: user.email, ...this.getErrorContext(err) },
-          'Unique violation while creating user',
-        );
-        throw new UserAlreadyExistsError(`User with email ${user.email} already exists`);
-      }
-      if (this.isForeignKeyViolation(err)) {
-        this.logger.warn(
-          { email: user.email, ...this.getErrorContext(err) },
-          'Foreign key violation while creating user',
-        );
-        throw new UserForeignKeyViolationError(
-          `Related record not found while creating user with email ${user.email}`,
-        );
-      }
-      if (this.isEntityNotFoundError(err)) {
-        this.logger.warn(
-          { email: user.email, ...this.getErrorContext(err) },
-          'Referenced record not found while creating user',
-        );
-        throw new UserNotFoundError(`Referenced record not found while creating user`);
-      }
-      if (this.isConnectionError(err)) {
-        this.logger.error(
-          { email: user.email, ...this.getErrorContext(err) },
-          'Database connection error while creating user',
-        );
-        throw new DataBaseError('Database connection error while creating user');
-      }
-      this.logger.error(
-        { email: user.email, ...this.getErrorContext(err) },
-        'Unexpected error while creating user',
-      );
-      if (err instanceof Error) {
-        throw err;
-      }
-      throw new Error(String(err));
+      this.handlerOrmErrorsService.handleError(err, {
+        uniqueConstraint: 'User with this email or username already exists',
+        notFound: 'User not found',
+        foreignKeyConstraint: 'Invalid reference in user data',
+        validation: 'Invalid user data provided',
+        unknown: 'An unexpected error occurred while creating user',
+      });
     }
   }
 
@@ -87,12 +53,14 @@ export class UserTypeOrmAdapter implements UserRepository {
       this.logger.info({ id: updatedUser.id, email: updatedUser.email }, 'User updated');
       return updatedUser;
     } catch (err) {
-      this.logger.error(
-        { email: id, ...this.getErrorContext(err) },
-        'Unexpected error while updating user',
-      );
-      if (err instanceof Error) throw err;
-      throw err;
+      this.handlerOrmErrorsService.handleError(err, {
+        uniqueConstraint: 'User with this email or username already exists',
+        notFound: 'User not found',
+        foreignKeyConstraint: 'Invalid reference in user data',
+        validation: 'Invalid user data provided',
+        connection: 'Database unavailable',
+        unknown: 'An unexpected error occurred while creating user',
+      });
     }
   }
 
