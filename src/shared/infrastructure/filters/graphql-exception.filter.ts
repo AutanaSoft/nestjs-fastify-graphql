@@ -1,4 +1,3 @@
-import { ApplicationBaseError } from '@/shared/applications/errors';
 import { DomainBaseError } from '@/shared/domain/errors';
 import { Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
 import { GraphQLError } from 'graphql';
@@ -32,18 +31,14 @@ export class GraphQLExceptionFilter implements ExceptionFilter {
    */
   catch(exception: unknown): void {
     // Manejo de errores personalizados del dominio, aplicación e infraestructura
-    if (
-      exception instanceof DomainBaseError ||
-      exception instanceof ApplicationBaseError ||
-      exception instanceof InfrastructureBaseError
-    ) {
+    if (exception instanceof DomainBaseError || exception instanceof InfrastructureBaseError) {
       // Registro selectivo: únicamente se registran errores que no provienen del dominio
       if (!(exception instanceof DomainBaseError)) {
-        this.logger.error({
+        /* this.logger.error({
           message: exception.message,
           extensions: exception.extensions,
           stack: exception instanceof Error ? exception.stack : undefined,
-        });
+        }); */
       }
 
       throw exception;

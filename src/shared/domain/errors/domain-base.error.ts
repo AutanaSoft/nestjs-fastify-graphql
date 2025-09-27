@@ -42,6 +42,52 @@ export class DataBaseError extends DomainBaseError {
 }
 
 /**
+ * Error de conflicto en el dominio cuando la operación no es válida.
+ * @public
+ */
+export class ConflictError extends DomainBaseError {
+  /**
+   * Crea un error de conflicto.
+   * @param message Mensaje legible para las personas.
+   * @param options Opciones adicionales para GraphQL.
+   */
+  constructor(message: string, options?: GraphQLErrorOptions) {
+    super(message, {
+      ...options,
+      extensions: {
+        code: 'CONFLICT',
+        statusCode: 409,
+        ...options?.extensions,
+      },
+    });
+  }
+}
+
+/**
+ * Error de dominio cuando no se encuentra un recurso.
+ * @public
+ */
+export class NotFoundError extends DomainBaseError {
+  /**
+   * Crea un error de recurso no encontrado.
+   * @param message Mensaje legible para las personas.
+   * @param options Opciones adicionales para GraphQL.
+   */
+  constructor(message: string, options?: GraphQLErrorOptions) {
+    super(message, {
+      ...options,
+      extensions: {
+        code: 'NOT_FOUND',
+        statusCode: 404,
+        ...options?.extensions,
+      },
+    });
+    this.name = this.constructor.name;
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+/**
  * Error de dominio cuando un servicio externo falla.
  * @public
  */

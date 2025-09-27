@@ -131,7 +131,7 @@ export class UserTypeOrmAdapter implements UserRepository {
 
   private isUniqueViolation(err: unknown): boolean {
     if (err instanceof QueryFailedError) {
-      const code = (err as unknown as { driverError?: { code?: string } })?.driverError?.code;
+      const code = this.getDriverErrorCode(err as QueryFailedError<Error>);
       return code === '23505';
     }
     return false;
@@ -139,7 +139,7 @@ export class UserTypeOrmAdapter implements UserRepository {
 
   private isForeignKeyViolation(err: unknown): boolean {
     if (err instanceof QueryFailedError) {
-      const code = (err as unknown as { driverError?: { code?: string } })?.driverError?.code;
+      const code = this.getDriverErrorCode(err as QueryFailedError<Error>);
       return code === '23503';
     }
     return false;
@@ -158,7 +158,6 @@ export class UserTypeOrmAdapter implements UserRepository {
       '08004',
       '08007',
       '08P01',
-      '57P01',
       '57P02',
       '57P03',
       'ECONNREFUSED',
@@ -169,20 +168,21 @@ export class UserTypeOrmAdapter implements UserRepository {
     ]);
 
     if (err instanceof QueryFailedError) {
-      const driver = (err as { driverError?: { code?: string } }).driverError;
-      if (driver?.code && connectionCodes.has(driver.code)) {
-        return true;
-      }
+      const code = this.getDriverErrorCode(err as QueryFailedError<Error>);
+      return code !== undefined && connectionCodes.has(code);
     }
 
     if (err && typeof err === 'object' && 'code' in err) {
       const code = (err as { code?: string }).code;
-      if (code && connectionCodes.has(code)) {
-        return true;
-      }
+      return code !== undefined && connectionCodes.has(code);
     }
 
     return false;
+  }
+
+  private getDriverErrorCode(err: QueryFailedError): string | undefined {
+    const driverError = err.driverError as { code?: string } | undefined;
+    return driverError?.code;
   }
 
   private getErrorContext(err: unknown): Record<string, unknown> {
