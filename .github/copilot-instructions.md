@@ -96,3 +96,50 @@ Create only when necessary for core functionality:
 - Testing: Jest
 - Code quality: ESLint + Prettier (strict TypeScript rules)
 - Architecture: Clean Architecture with modular design and hexagonal organization by modules
+
+# Commit Message Guidelines
+
+This project validates commit messages with @commitlint/config-conventional plus a few extra rules defined in `commitlint.config.js`. Below you’ll find what is strictly enforced vs. recommended best practices.
+
+## Required format (enforced)
+
+Header structure:
+
+```
+type(scope): subject
+[optional body]
+[optional footer]
+```
+
+What is enforced by commitlint in this repo:
+
+- type: must be a conventional type in lowercase
+- scope: cannot be empty (must exist)
+- subject: required line (no trailing period)
+- header-max-length: 100 characters total for the first line
+- body-max-line-length: 100 characters per line
+- footer-max-line-length: 100 characters per line
+
+If any of the above is violated, the commit will be rejected.
+
+### Allowed types
+
+The following types are accepted by @commitlint/config-conventional:
+
+- build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test
+
+### Subject rules
+
+- Keep it concise; do not end with a period
+- Use imperative mood (e.g., “add”, “fix”, “update”)
+
+## Body and footer
+
+Enforced limits:
+
+- Wrap lines at 100 characters (both body and footer)
+
+Recommended formatting:
+
+- Leave a blank line between header and body, and between body and footer
+- Use footer for BREAKING CHANGE, issue references, or metadata
