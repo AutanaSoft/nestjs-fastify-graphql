@@ -28,7 +28,7 @@ export class UserTypeOrmAdapter implements UserRepository {
       return saved;
     } catch (err) {
       this.handlerOrmErrorsService.handleError(err, {
-        uniqueConstraint: 'User with this email or username already exists',
+        uniqueConstraint: 'User with this email or userName already exists',
         notFound: 'User not found',
         foreignKeyConstraint: 'Invalid reference in user data',
         validation: 'Invalid user data provided',

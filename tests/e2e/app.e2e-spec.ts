@@ -1,12 +1,14 @@
+import { ValidationPipe, ValidationPipeOptions } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  FastifyAdapter,
-  NestFastifyApplication,
-} from '@nestjs/platform-fastify';
-import request from 'supertest';
-import { AppModule } from '../../src/app.module';
 
-describe('AppController (e2e)', () => {
+import { AppModule } from '../../src/app.module';
+import { appGetTest } from './app-get.spec';
+import { getAppInfoSpec } from './get-app-info.spec';
+import { createUserSpec } from './modules/users/create-user.spec';
+
+describe('App Tests (e2e)', () => {
   let app: NestFastifyApplication;
 
   beforeAll(async () => {
@@ -14,9 +16,11 @@ describe('AppController (e2e)', () => {
       imports: [AppModule],
     }).compile();
 
-    app = moduleFixture.createNestApplication<NestFastifyApplication>(
-      new FastifyAdapter(),
-    );
+    app = moduleFixture.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    const configService = app.get(ConfigService);
+    const validationPipeOptions =
+      configService.getOrThrow<ValidationPipeOptions>('validationPipeConfig');
+    app.useGlobalPipes(new ValidationPipe(validationPipeOptions));
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
   });
@@ -25,10 +29,14 @@ describe('AppController (e2e)', () => {
     await app.close();
   });
 
-  it('/ (GET)', async () => {
-    await request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Hello World!');
+  // aquí van las pruebas e2e (end-to-end) las cuales se tiene que importar de sus respectivos archivos
+  describe('AppController', () => {
+    appGetTest(() => app);
+  });
+  describe('App Resolvers', () => {
+    getAppInfoSpec(() => app);
+    describe('User Resolvers', () => {
+      createUserSpec(() => app);
+    });
   });
 });

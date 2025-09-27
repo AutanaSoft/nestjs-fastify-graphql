@@ -20,7 +20,7 @@ export type IsUserNameOptions = {
  * @returns Decoradores que validan y transforman el valor recibido antes de su uso.
  */
 export function IsUserName(options: IsUserNameOptions = {}): PropertyDecorator {
-  const { fieldLabel = 'Username' } = options;
+  const { fieldLabel = 'UserName' } = options;
   return applyDecorators(
     Transform(({ value }: { value: string }) => (typeof value === 'string' ? value.trim() : value)),
     IsNotEmpty({ message: `${fieldLabel} must not be empty.` }),

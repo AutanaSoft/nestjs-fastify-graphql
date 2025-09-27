@@ -12,15 +12,16 @@ import {
 import { UserRole, UserStatus } from '../enums/user.enum';
 
 @Entity('users')
-@Index(['email', 'userName'], { unique: true })
 export class UserEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ length: 64 })
+  @Index({ unique: true })
   email: string;
 
   @Column({ name: 'user_name', length: 20 })
+  @Index({ unique: true })
   userName: string;
 
   @Column({ length: 64 })
@@ -32,6 +33,7 @@ export class UserEntity {
   @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
   role: UserRole;
 
+  @Index()
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
