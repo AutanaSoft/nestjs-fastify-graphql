@@ -1,16 +1,14 @@
 import { GraphQLError, GraphQLErrorOptions } from 'graphql';
 
 /**
- * Base class for domain errors surfaced via GraphQL.
- * @remarks
- * Prefer keeping pure domain errors decoupled from GraphQL and map them at the infrastructure layer.
- * This class ensures the prototype chain is correctly set and the error name matches the class name.
+ * Error base para excepciones de aplicación expuestas vía GraphQL.
+ * @public
  */
 export class ApplicationBaseError extends GraphQLError {
   /**
-   * Create a new BaseDomainError.
-   * @param message Human-readable error message.
-   * @param options Optional GraphQL error options (path, extensions, etc.).
+   * Crea una nueva instancia con metadatos opcionales de GraphQL.
+   * @param message Mensaje descriptivo del error.
+   * @param options Opciones adicionales para GraphQL.
    */
   constructor(message: string, options?: GraphQLErrorOptions) {
     super(message, options);

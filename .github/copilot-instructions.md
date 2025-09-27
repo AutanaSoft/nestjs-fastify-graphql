@@ -50,6 +50,7 @@ What to do:
 
 - Always respond in Spanish when communicating with the developer
 - Use Spanish for all technical documentation:
+  - maximum 80 characters per line
   - Comments in source code
   - JSDoc and function documentation
   - Component descriptions
