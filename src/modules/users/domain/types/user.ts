@@ -8,4 +8,7 @@ export type UserCreateType = {
   role?: UserRole;
 };
 
-export type UserUpdateType = Partial<UserCreateType>;
+export type UserUpdateType = {
+  id: string;
+  data: Partial<UserCreateType>;
+};

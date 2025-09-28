@@ -13,8 +13,8 @@ export class CreateUserUseCase {
   ) {}
 
   async execute(command: CreateUserArgsDto): Promise<UserEntity> {
-    // Business logic to create a user would go here
     const user = await this.userRepository.create(command.data);
+    this.logger.info(`User created with ID: ${user.id}`);
     return user;
   }
 }
