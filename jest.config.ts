@@ -19,7 +19,6 @@ const baseProject: Config = {
 };
 
 const config: Config = {
-  coverageProvider: 'babel',
   projects: [
     {
       ...baseProject,
