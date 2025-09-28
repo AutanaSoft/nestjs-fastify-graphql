@@ -6,11 +6,11 @@ import { EntityNotFoundError, QueryFailedError } from 'typeorm';
 import { HANDLER_ORM_ERRORS_DEFAULT_MESSAGE } from '../constants';
 import { HandlerOrmErrorMessagesType, QueryFailedDriverError } from '../types';
 
+@Injectable()
 /**
- * Servicio encargado de transformar errores del ORM en errores de dominio.
+ * Gestiona los errores generados por TypeORM y los mapea a excepciones.
  * @public
  */
-@Injectable()
 export class HandlerOrmErrorsService {
   constructor(
     @InjectPinoLogger(HandlerOrmErrorsService.name)
@@ -18,10 +18,13 @@ export class HandlerOrmErrorsService {
   ) {}
 
   /**
-   * Procesa un error arrojado por el ORM y lo mapea a una excepción de dominio.
-   * @param error Error original generado por el ORM o la base de datos.
-   * @param errorsMessages Mensajes personalizados para cada escenario de error.
-   * @returns Nunca retorna porque siempre lanza una excepción de dominio.
+   * Procesa un error de TypeORM y lanza la excepción correspondiente.
+   * @param error Error capturado en la capa de infraestructura.
+   * @param errorsMessages Mensajes personalizados por tipo de error.
+   * @returns Nunca retorna porque siempre lanza una excepción.
+   * @throws NotFoundError Cuando la entidad no existe.
+   * @throws ConflictError Cuando ocurre una violación de unicidad.
+   * @throws DataBaseError Cuando se detecta otro error de base de datos.
    */
   public handleError(
     error: unknown,
@@ -49,12 +52,27 @@ export class HandlerOrmErrorsService {
     return this.handleUnknownError(error, mergedMessages);
   }
 
+  /**
+   * Maneja errores no clasificados arrojando una excepción genérica.
+   * @param error Error recibido desde el adaptador ORM.
+   * @param errorsMessages Mensajes configurados para el error.
+   * @returns Nunca retorna porque lanza una excepción.
+   * @throws DataBaseError Siempre, encapsulando el error original.
+   */
   private handleUnknownError(error: unknown, errorsMessages: HandlerOrmErrorMessagesType): never {
     this.logger.assign({ method: 'handleUnknownError' });
-    this.logger.error('Processing unknown database error');
+    this.logger.error({ error }, 'Unknown ORM error detected');
     throw new DataBaseError(errorsMessages.unknown, this.buildGraphQLErrorOptions(error));
   }
 
+  /**
+   * Interpreta un QueryFailedError y lanza la excepción apropiada.
+   * @param error Error producido durante la ejecución de la consulta.
+   * @param errorMessages Mensajes configurados para cada categoría.
+   * @returns Nunca retorna porque lanza una excepción.
+   * @throws ConflictError Cuando se incumple una restricción de unicidad.
+   * @throws DataBaseError Para otras violaciones o fallos de conexión.
+   */
   private handleQueryFailedError(
     error: QueryFailedError<Error>,
     errorMessages: HandlerOrmErrorMessagesType,
@@ -80,10 +98,6 @@ export class HandlerOrmErrorsService {
           this.buildGraphQLErrorOptions(error),
         );
       case '23503': // foreign_key_violation
-        throw new ConflictError(
-          errorMessages.foreignKeyConstraint,
-          this.buildGraphQLErrorOptions(error),
-        );
       case '23502': // not_null_violation
       case '23514': // check_violation
       case '22P02': // invalid_text_representation
@@ -98,6 +112,11 @@ export class HandlerOrmErrorsService {
     }
   }
 
+  /**
+   * Construye opciones para ofrecer el error original en GraphQL.
+   * @param error Error recibido desde TypeORM.
+   * @returns Opciones para GraphQLError o undefined.
+   */
   private buildGraphQLErrorOptions(error: unknown): GraphQLErrorOptions | undefined {
     if (error instanceof Error) {
       return { originalError: error };

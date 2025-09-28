@@ -30,7 +30,7 @@ export abstract class UserRepository {
    * @returns A promise that resolves to the updated {@link UserEntity}
    * @throws Error Implementations may throw when the user does not exist or on persistence errors
    */
-  abstract update(id: string, user: UserUpdateType): Promise<UserEntity>;
+  abstract update(id: string, user: UserUpdateType): Promise<boolean>;
 
   /**
    * Retrieves a User by its identifier.
