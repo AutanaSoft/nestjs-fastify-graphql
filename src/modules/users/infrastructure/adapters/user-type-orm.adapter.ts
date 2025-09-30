@@ -54,7 +54,7 @@ export class UserTypeOrmAdapter implements UserRepository {
   async update(params: UserUpdateType): Promise<boolean> {
     try {
       this.logger.info({ updateUser: params }, 'Updating user...');
-      const result = await this.userRepository.update(params.id, params);
+      const result = await this.userRepository.update(params.id, params.data);
       return !!result.affected;
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {

@@ -1,4 +1,6 @@
-import { InputType, OmitType, PartialType } from '@nestjs/graphql';
+import { Field, InputType, OmitType, PartialType } from '@nestjs/graphql';
+import { IsEnum, IsOptional } from 'class-validator';
+import { UserRole, UserStatus } from '@/modules/users/domain/enums/user.enum';
 import { CreateUserInputDto } from './create-user-input.dto';
 
 /**
@@ -12,10 +14,33 @@ import { CreateUserInputDto } from './create-user-input.dto';
  * - El email y la contraseña no pueden modificarse mediante esta operación
  * - Todos los campos heredados son opcionales, permitiendo actualizaciones parciales
  * - Las validaciones de cada campo se heredan de CreateUserInputDto
+ * - Se agregan campos adicionales para status y role
  *
  * @public
  */
 @InputType()
 export class UpdateUserInputDto extends PartialType(
   OmitType(CreateUserInputDto, ['email', 'password'] as const),
-) {}
+) {
+  /**
+   * Estado del usuario.
+   *
+   * @remarks
+   * Debe ser uno de los valores del enum UserStatus.
+   */
+  @Field(() => UserStatus, { nullable: true, description: 'Status of the user' })
+  @IsOptional()
+  @IsEnum(UserStatus, { message: 'Status must be a valid UserStatus value.' })
+  status?: UserStatus;
+
+  /**
+   * Rol del usuario.
+   *
+   * @remarks
+   * Debe ser uno de los valores del enum UserRole.
+   */
+  @Field(() => UserRole, { nullable: true, description: 'Role of the user' })
+  @IsOptional()
+  @IsEnum(UserRole, { message: 'Role must be a valid UserRole value.' })
+  role?: UserRole;
+}

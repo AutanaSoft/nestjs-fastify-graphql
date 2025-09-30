@@ -7,6 +7,8 @@ import { AppModule } from '../../src/app.module';
 import { appGetTest } from './app-get.spec';
 import { getAppInfoSpec } from './get-app-info.spec';
 import { createUserSpec } from './modules/users/create-user.spec';
+import { updateUserSpec } from './modules/users/update-user.spec';
+import { cleanupTestUser } from './modules/users/user-test.config';
 
 describe('App Tests (e2e)', () => {
   let app: NestFastifyApplication;
@@ -36,7 +38,12 @@ describe('App Tests (e2e)', () => {
   describe('App Resolvers', () => {
     getAppInfoSpec(() => app);
     describe('User Resolvers', () => {
+      afterAll(async () => {
+        await cleanupTestUser(app);
+      });
+
       createUserSpec(() => app);
+      updateUserSpec(() => app);
     });
   });
 });

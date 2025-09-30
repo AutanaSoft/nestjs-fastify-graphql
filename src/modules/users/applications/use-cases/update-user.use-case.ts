@@ -47,6 +47,14 @@ export class UpdateUserUseCase {
       updateData.userName = userName.getValue();
     }
 
+    if (command.data.status) {
+      updateData.status = command.data.status;
+    }
+
+    if (command.data.role) {
+      updateData.role = command.data.role;
+    }
+
     const updated = await this.userRepository.update({
       id: command.id,
       data: updateData,
