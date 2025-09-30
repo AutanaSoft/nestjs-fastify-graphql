@@ -1,3 +1,4 @@
+import { HttpStatus } from '@nestjs/common';
 import { DomainBaseError } from '@/shared/domain/errors/domain-base.error';
 import { GraphQLErrorOptions } from 'graphql';
 
@@ -11,7 +12,7 @@ export class UserNotFoundError extends DomainBaseError {
       ...options,
       extensions: {
         code: 'USER_NOT_FOUND',
-        statusCode: 404,
+        status: HttpStatus.NOT_FOUND,
         ...options?.extensions,
       },
     });
@@ -30,7 +31,7 @@ export class ForbiddenUserNameError extends DomainBaseError {
       ...options,
       extensions: {
         code: 'FORBIDDEN_USERNAME',
-        statusCode: 400,
+        status: HttpStatus.FORBIDDEN,
         userName,
         ...options?.extensions,
       },
@@ -50,7 +51,7 @@ export class ForbiddenEmailDomainError extends DomainBaseError {
       ...options,
       extensions: {
         code: 'FORBIDDEN_EMAIL_DOMAIN',
-        statusCode: 400,
+        status: HttpStatus.FORBIDDEN,
         email,
         domain,
         ...options?.extensions,
@@ -71,7 +72,7 @@ export class UserUpdateFailedError extends DomainBaseError {
       ...options,
       extensions: {
         code: 'USER_UPDATE_FAILED',
-        statusCode: 500,
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
         userId,
         ...options?.extensions,
       },

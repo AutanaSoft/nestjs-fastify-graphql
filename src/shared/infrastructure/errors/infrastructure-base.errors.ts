@@ -1,3 +1,4 @@
+import { HttpStatus } from '@nestjs/common';
 import { DomainBaseError } from '@/shared/domain/errors';
 import { GraphQLErrorOptions } from 'graphql';
 
@@ -33,7 +34,7 @@ export class BadRequestError extends InfrastructureBaseError {
       ...options,
       extensions: {
         code: 'BAD_REQUEST',
-        statusCode: 400,
+        status: HttpStatus.BAD_REQUEST,
         ...options?.extensions,
       },
     });
@@ -57,7 +58,7 @@ export class UnauthorizedError extends InfrastructureBaseError {
       ...options,
       extensions: {
         code: 'UNAUTHORIZED',
-        statusCode: 401,
+        status: HttpStatus.UNAUTHORIZED,
         ...options?.extensions,
       },
     });
@@ -81,7 +82,7 @@ export class ForbiddenError extends InfrastructureBaseError {
       ...options,
       extensions: {
         code: 'FORBIDDEN',
-        statusCode: 403,
+        status: HttpStatus.FORBIDDEN,
         ...options?.extensions,
       },
     });
