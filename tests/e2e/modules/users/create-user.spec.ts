@@ -1,6 +1,7 @@
 import { UserEntityDto } from '@/modules/users/applications/dto';
 import { UserEntity } from '@/modules/users/domain/entities';
 import { UserRole, UserStatus } from '@/modules/users/domain/enums/user.enum';
+import { HttpStatus } from '@nestjs/common';
 import { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { GraphQLError } from 'graphql';
 import request from 'supertest';
@@ -63,7 +64,7 @@ export const createUserSpec = (getApp: () => NestFastifyApplication) => {
       expect(error).toBeDefined();
       expect(error?.message).toBe('Email must be a valid email address.');
       expect(error?.extensions?.code).toBe('BAD_REQUEST');
-      expect(error?.extensions?.status).toBe(400);
+      expect(error?.extensions?.status).toBe(HttpStatus.BAD_REQUEST);
       expect(error?.path?.[0]).toBe('createUser');
     });
 
@@ -88,7 +89,7 @@ export const createUserSpec = (getApp: () => NestFastifyApplication) => {
       expect(error).toBeDefined();
       expect(error?.message).toBe('UserName must contain at least 4 characters.');
       expect(error?.extensions?.code).toBe('BAD_REQUEST');
-      expect(error?.extensions?.status).toBe(400);
+      expect(error?.extensions?.status).toBe(HttpStatus.BAD_REQUEST);
       expect(error?.path?.[0]).toBe('createUser');
     });
 
@@ -115,7 +116,7 @@ export const createUserSpec = (getApp: () => NestFastifyApplication) => {
         'Password must include uppercase, lowercase, numeric and special characters (@$!%*?&).',
       );
       expect(error?.extensions?.code).toBe('BAD_REQUEST');
-      expect(error?.extensions?.status).toBe(400);
+      expect(error?.extensions?.status).toBe(HttpStatus.BAD_REQUEST);
       expect(error?.path?.[0]).toBe('createUser');
     });
 
@@ -155,7 +156,7 @@ export const createUserSpec = (getApp: () => NestFastifyApplication) => {
       expect(error).toBeDefined();
       expect(error?.message).toBe('User with this email or userName already exists');
       expect(error?.extensions?.code).toBe('CONFLICT');
-      expect(error?.extensions?.statusCode).toBe(409);
+      expect(error?.extensions?.status).toBe(HttpStatus.CONFLICT);
       expect(error?.path?.[0]).toBe('createUser');
     });
 
@@ -180,7 +181,7 @@ export const createUserSpec = (getApp: () => NestFastifyApplication) => {
       expect(error).toBeDefined();
       expect(error?.message).toBe('User with this email or userName already exists');
       expect(error?.extensions?.code).toBe('CONFLICT');
-      expect(error?.extensions?.statusCode).toBe(409);
+      expect(error?.extensions?.status).toBe(HttpStatus.CONFLICT);
       expect(error?.path?.[0]).toBe('createUser');
     });
   });
