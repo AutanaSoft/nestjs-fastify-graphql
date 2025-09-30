@@ -1,7 +1,7 @@
 import { SharedModule } from '@/shared/shared.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CreateUserUseCase } from './applications/use-cases';
+import { CreateUserUseCase, UpdateUserUseCase } from './applications/use-cases';
 import { UserEntity } from './domain/entities';
 import { USER_REPOSITORY } from './domain/repository';
 import { UserTypeOrmAdapter } from './infrastructure/adapters';
@@ -16,6 +16,7 @@ import { UserResolvers } from './infrastructure/resolvers';
       useClass: UserTypeOrmAdapter,
     },
     CreateUserUseCase,
+    UpdateUserUseCase,
     UserResolvers,
   ],
 })

@@ -51,10 +51,10 @@ export class UserTypeOrmAdapter implements UserRepository {
    * @returns Indicador de actualización exitosa.
    * @throws DataBaseError Cuando ocurre un fallo de persistencia.
    */
-  async update(id: string, user: UserUpdateType): Promise<boolean> {
+  async update(params: UserUpdateType): Promise<boolean> {
     try {
-      this.logger.info({ updateUser: { id, user } }, 'Updating user...');
-      const result = await this.userRepository.update({ email: id }, user);
+      this.logger.info({ updateUser: params }, 'Updating user...');
+      const result = await this.userRepository.update(params.id, params);
       return !!result.affected;
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {

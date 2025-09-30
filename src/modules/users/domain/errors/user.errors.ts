@@ -60,3 +60,23 @@ export class ForbiddenEmailDomainError extends DomainBaseError {
     Object.setPrototypeOf(this, new.target.prototype);
   }
 }
+
+/**
+ * Error de dominio que indica que la operación de actualización del usuario falló.
+ * @public
+ */
+export class UserUpdateFailedError extends DomainBaseError {
+  constructor(userId: string, options?: GraphQLErrorOptions) {
+    super(`Failed to update user with ID ${userId}`, {
+      ...options,
+      extensions: {
+        code: 'USER_UPDATE_FAILED',
+        statusCode: 500,
+        userId,
+        ...options?.extensions,
+      },
+    });
+    this.name = this.constructor.name;
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}

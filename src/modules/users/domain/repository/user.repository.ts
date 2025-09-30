@@ -25,12 +25,12 @@ export abstract class UserRepository {
   /**
    * Applies partial changes to an existing User.
    *
-   * @param id - User identifier
-   * @param user - Partial data to update
-   * @returns A promise that resolves to the updated {@link UserEntity}
-   * @throws Error Implementations may throw when the user does not exist or on persistence errors
+   * @param params - Data required to update the user
+   * @returns A promise that resolves to `true` if the update was successful; otherwise `false`
+   * @throws Error Implementations may throw when persistence constraints are violated (e.g., unique email)
+   * @remarks Partial updates are supported; only provided fields will be updated
    */
-  abstract update(id: string, user: UserUpdateType): Promise<boolean>;
+  abstract update(params: UserUpdateType): Promise<boolean>;
 
   /**
    * Retrieves a User by its identifier.
