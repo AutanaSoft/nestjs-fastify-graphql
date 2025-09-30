@@ -1,9 +1,11 @@
-import { CreateUserUseCase } from '@/modules/users/applications/use-cases';
 import { CreateUserArgsDto } from '@/modules/users/applications/dto/args';
 import { CreateUserInputDto } from '@/modules/users/applications/dto/inputs';
-import { ForbiddenUserNameError } from '@/modules/users/domain/errors';
+import { CreateUserUseCase } from '@/modules/users/applications/use-cases';
 import { UserEntity } from '@/modules/users/domain/entities';
+import { UserRole, UserStatus } from '@/modules/users/domain/enums/user.enum';
+import { ForbiddenUserNameError } from '@/modules/users/domain/errors';
 import { UserRepository } from '@/modules/users/domain/repository';
+import { PinoLogger } from 'nestjs-pino';
 
 describe('CreateUserUseCase', () => {
   let useCase: CreateUserUseCase;
@@ -16,18 +18,16 @@ describe('CreateUserUseCase', () => {
     password: 'ValidPass123!',
   };
 
-  const createdUserEntity: UserEntity = {
+  const createdUserEntity: Partial<UserEntity> = {
     id: '123e4567-e89b-12d3-a456-426614174000',
     userName: 'validuser',
     email: 'valid@example.com',
     password: 'hashedPassword123',
-    status: 'registered',
-    role: 'user',
+    status: UserStatus.REGISTERED,
+    role: UserRole.USER,
     createdAt: new Date('2025-01-01T00:00:00Z'),
     updatedAt: new Date('2025-01-01T00:00:00Z'),
-    hashPassword: jest.fn(),
-    validatePassword: jest.fn(),
-  } as unknown as UserEntity;
+  };
 
   beforeEach(() => {
     userRepositoryMock = {
@@ -43,11 +43,11 @@ describe('CreateUserUseCase', () => {
       error: jest.fn(),
       warn: jest.fn(),
       debug: jest.fn(),
-    };
+    } as LoggerMock;
 
     useCase = new CreateUserUseCase(
       userRepositoryMock as unknown as UserRepository,
-      loggerMock as unknown as typeof loggerMock,
+      loggerMock as unknown as PinoLogger,
     );
   });
 
@@ -61,7 +61,7 @@ describe('CreateUserUseCase', () => {
         data: validUserInput,
       };
 
-      userRepositoryMock.create.mockResolvedValue(createdUserEntity);
+      userRepositoryMock.create.mockResolvedValue(createdUserEntity as UserEntity);
 
       const result = await useCase.execute(command);
 
@@ -150,7 +150,7 @@ describe('CreateUserUseCase', () => {
       };
 
       const expectedUser = { ...createdUserEntity, userName: 'myusername' };
-      userRepositoryMock.create.mockResolvedValue(expectedUser);
+      userRepositoryMock.create.mockResolvedValue(expectedUser as UserEntity);
 
       const result = await useCase.execute(command);
 
@@ -192,7 +192,7 @@ describe('CreateUserUseCase', () => {
       };
 
       const expectedUser = { ...createdUserEntity, userName: 'admin123' };
-      userRepositoryMock.create.mockResolvedValue(expectedUser);
+      userRepositoryMock.create.mockResolvedValue(expectedUser as UserEntity);
 
       const result = await useCase.execute(command);
 
@@ -205,7 +205,7 @@ describe('CreateUserUseCase', () => {
         data: validUserInput,
       };
 
-      userRepositoryMock.create.mockResolvedValue(createdUserEntity);
+      userRepositoryMock.create.mockResolvedValue(createdUserEntity as UserEntity);
 
       await useCase.execute(command);
 
@@ -222,9 +222,4 @@ interface UserRepositoryMock {
   findAll: jest.Mock;
 }
 
-interface LoggerMock {
-  info: jest.Mock;
-  error: jest.Mock;
-  warn: jest.Mock;
-  debug: jest.Mock;
-}
+type LoggerMock = jest.Mocked<Pick<PinoLogger, 'info' | 'error' | 'warn' | 'debug'>>;
