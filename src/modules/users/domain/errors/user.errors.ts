@@ -19,3 +19,23 @@ export class UserNotFoundError extends DomainBaseError {
     Object.setPrototypeOf(this, new.target.prototype);
   }
 }
+
+/**
+ * Error de dominio que indica que el nombre de usuario está prohibido.
+ * @public
+ */
+export class ForbiddenUserNameError extends DomainBaseError {
+  constructor(userName: string, options?: GraphQLErrorOptions) {
+    super(`The username "${userName}" is not allowed`, {
+      ...options,
+      extensions: {
+        code: 'FORBIDDEN_USERNAME',
+        statusCode: 400,
+        userName,
+        ...options?.extensions,
+      },
+    });
+    this.name = this.constructor.name;
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
