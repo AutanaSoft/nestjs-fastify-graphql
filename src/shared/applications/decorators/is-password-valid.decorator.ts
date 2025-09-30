@@ -25,23 +25,19 @@ export type IsUserPasswordOptions = {
  */
 export function IsUserPassword(options: IsUserPasswordOptions = {}): PropertyDecorator {
   const { fieldLabel = 'Password', minLength = 8, maxLength = 16 } = options;
-  const sanitizedMin = Math.max(1, minLength);
-  const sanitizedMax = Math.max(sanitizedMin, maxLength);
-  const pattern = new RegExp(
-    `^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{${sanitizedMin},${sanitizedMax}}$`,
-  );
+  const pattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/;
   return applyDecorators(
-    Transform(({ value }: { value: string }) => (typeof value === 'string' ? value.trim() : value)),
     IsNotEmpty({ message: `${fieldLabel} must not be empty.` }),
     IsString({ message: `${fieldLabel} must be a string.` }),
-    MinLength(sanitizedMin, {
-      message: `${fieldLabel} must contain at least ${sanitizedMin} characters.`,
+    MinLength(minLength, {
+      message: `${fieldLabel} must contain at least ${minLength} characters.`,
     }),
-    MaxLength(sanitizedMax, {
-      message: `${fieldLabel} must contain at most ${sanitizedMax} characters.`,
+    MaxLength(maxLength, {
+      message: `${fieldLabel} must contain at most ${maxLength} characters.`,
     }),
     Matches(pattern, {
       message: `${fieldLabel} must include uppercase, lowercase, numeric and special characters (@$!%*?&).`,
     }),
+    Transform(({ value }: { value: string }) => (typeof value === 'string' ? value.trim() : value)),
   );
 }
