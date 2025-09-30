@@ -39,3 +39,24 @@ export class ForbiddenUserNameError extends DomainBaseError {
     Object.setPrototypeOf(this, new.target.prototype);
   }
 }
+
+/**
+ * Error de dominio que indica que el dominio del email está prohibido.
+ * @public
+ */
+export class ForbiddenEmailDomainError extends DomainBaseError {
+  constructor(email: string, domain: string, options?: GraphQLErrorOptions) {
+    super(`The email domain "${domain}" from "${email}" is not allowed`, {
+      ...options,
+      extensions: {
+        code: 'FORBIDDEN_EMAIL_DOMAIN',
+        statusCode: 400,
+        email,
+        domain,
+        ...options?.extensions,
+      },
+    });
+    this.name = this.constructor.name;
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}

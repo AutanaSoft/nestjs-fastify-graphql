@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { UserEntity } from '../../domain/entities';
 import { USER_REPOSITORY, UserRepository } from '../../domain/repository';
-import { UserName } from '../../domain/value-objects';
+import { UserEmail, UserName } from '../../domain/value-objects';
 import { CreateUserArgsDto } from '../dto/args';
 
 /**
@@ -27,14 +27,17 @@ export class CreateUserUseCase {
    * @param command Argumentos que contienen los datos de entrada.
    * @returns La entidad de usuario creada.
    * @throws ForbiddenUserNameError Si el nombre de usuario está prohibido.
+   * @throws ForbiddenEmailDomainError Si el dominio del email está prohibido.
    * @throws Error Si la operación de persistencia falla.
-   * @remarks Valida que el nombre de usuario no esté prohibido antes de delegar en el repositorio.
+   * @remarks Valida que el nombre de usuario y el dominio del email no estén prohibidos antes de delegar en el repositorio.
    */
   async execute(command: CreateUserArgsDto): Promise<UserEntity> {
     const userName = new UserName(command.data.userName);
+    const userEmail = new UserEmail(command.data.email);
     const user = await this.userRepository.create({
       ...command.data,
       userName: userName.getValue(),
+      email: userEmail.getValue(),
     });
     this.logger.info(`User created with ID: ${user.id}`);
     return user;
