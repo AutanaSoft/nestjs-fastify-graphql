@@ -27,7 +27,7 @@ export class UserNotFoundError extends DomainBaseError {
  */
 export class ForbiddenUserNameError extends DomainBaseError {
   constructor(userName: string, options?: GraphQLErrorOptions) {
-    super(`The username ${userName} is not allowed`, {
+    super(`The username "${userName}" is not allowed`, {
       ...options,
       extensions: {
         code: 'FORBIDDEN_USERNAME',
@@ -47,7 +47,7 @@ export class ForbiddenUserNameError extends DomainBaseError {
  */
 export class ForbiddenEmailDomainError extends DomainBaseError {
   constructor(email: string, domain: string, options?: GraphQLErrorOptions) {
-    super(`The email domain ${domain} from ${email} is not allowed`, {
+    super(`The email domain "${domain}" from "${email}" is not allowed`, {
       ...options,
       extensions: {
         code: 'FORBIDDEN_EMAIL_DOMAIN',
@@ -68,7 +68,7 @@ export class ForbiddenEmailDomainError extends DomainBaseError {
  */
 export class UserUpdateFailedError extends DomainBaseError {
   constructor(userId: string, options?: GraphQLErrorOptions) {
-    super(`Failed to update user with ID ${userId}`, {
+    super(`Failed to update user with ID "${userId}"`, {
       ...options,
       extensions: {
         code: 'USER_UPDATE_FAILED',

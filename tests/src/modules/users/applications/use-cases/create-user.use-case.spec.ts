@@ -88,7 +88,7 @@ describe('CreateUserUseCase', () => {
       };
 
       await expect(useCase.execute(command)).rejects.toThrow(ForbiddenUserNameError);
-      await expect(useCase.execute(command)).rejects.toThrow('The username admin is not allowed');
+      await expect(useCase.execute(command)).rejects.toThrow('The username "admin" is not allowed');
       expect(userRepositoryMock.create).not.toHaveBeenCalled();
       expect(loggerMock.info).not.toHaveBeenCalled();
     });
