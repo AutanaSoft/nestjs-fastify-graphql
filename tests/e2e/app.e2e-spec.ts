@@ -7,6 +7,7 @@ import { AppModule } from '../../src/app.module';
 import { appGetTest } from './app-get.spec';
 import { getAppInfoSpec } from './get-app-info.spec';
 import { createUserSpec } from './modules/users/create-user.spec';
+import { findUserSpec } from './modules/users/find-user.spec';
 import { updateUserSpec } from './modules/users/update-user.spec';
 import { cleanupTestUser } from './modules/users/user-test.config';
 
@@ -44,6 +45,7 @@ describe('App Tests (e2e)', () => {
 
       createUserSpec(() => app);
       updateUserSpec(() => app);
+      findUserSpec(() => app);
     });
   });
 });
