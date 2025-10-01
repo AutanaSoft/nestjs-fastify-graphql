@@ -1,8 +1,8 @@
 import { UserEntityDto } from '@/modules/users/applications/dto';
 import { UserRole, UserStatus } from '@/modules/users/domain/enums/user.enum';
+import { GraphQLResponse } from '@/shared/applications/types';
 import { HttpStatus } from '@nestjs/common';
 import { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { GraphQLError } from 'graphql';
 import request from 'supertest';
 import { getTestUserId, testUserVariables } from './user-test.config';
 
@@ -207,11 +207,6 @@ export const updateUserSpec = (getApp: () => NestFastifyApplication) => {
       expect(updatedUser?.email).toBe(testUserVariables.input.email.toLowerCase());
     });
   });
-};
-
-type GraphQLResponse<TData> = {
-  data: TData | null;
-  errors?: GraphQLError[];
 };
 
 type UpdateUserResponse = {

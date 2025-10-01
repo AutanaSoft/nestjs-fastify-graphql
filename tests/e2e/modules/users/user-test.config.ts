@@ -1,7 +1,8 @@
+import { UserEntity } from '@/modules/users/domain/entities';
+import { GraphQLResponse } from '@/shared/applications/types';
 import { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
 import { DataSource, ILike } from 'typeorm';
-import { UserEntity } from '@/modules/users/domain/entities';
 
 /**
  * Tipo para la respuesta de creación de usuario en GraphQL.
@@ -14,14 +15,6 @@ type CreateUserResponse = {
     status: string;
     role: string;
   } | null;
-};
-
-/**
- * Tipo para la respuesta GraphQL.
- */
-type GraphQLResponse<TData> = {
-  data: TData | null;
-  errors?: unknown[];
 };
 
 /**

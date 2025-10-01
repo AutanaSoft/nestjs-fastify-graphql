@@ -1,7 +1,8 @@
+import { AppConfig } from '@/config';
+import { GraphQLResponse } from '@/shared/applications/types';
 import { ConfigService } from '@nestjs/config';
 import { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
-import { AppConfig } from '../../src/config';
 
 export const getAppInfoSpec = (getApp: () => NestFastifyApplication) => {
   describe('GetAppInfo', () => {
@@ -58,11 +59,6 @@ export const getAppInfoSpec = (getApp: () => NestFastifyApplication) => {
       });
     });
   });
-
-  type GraphQLResponse<TData> = {
-    data: TData;
-    errors?: unknown;
-  };
 
   type GetAppInfoData = {
     getAppInfo: {

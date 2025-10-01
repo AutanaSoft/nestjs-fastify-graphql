@@ -1,8 +1,8 @@
 import { UserEntityDto } from '@/modules/users/applications/dto';
 import { UserRole, UserStatus } from '@/modules/users/domain/enums/user.enum';
+import { GraphQLResponse } from '@/shared/applications/types';
 import { HttpStatus } from '@nestjs/common';
 import { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { GraphQLError } from 'graphql';
 import request from 'supertest';
 import { setTestUserId, testUserVariables } from './user-test.config';
 
@@ -175,11 +175,6 @@ export const createUserSpec = (getApp: () => NestFastifyApplication) => {
       expect(error?.path?.[0]).toBe('createUser');
     });
   });
-};
-
-type GraphQLResponse<TData> = {
-  data: TData | null;
-  errors?: GraphQLError[];
 };
 
 type CreateUserResponse = {
