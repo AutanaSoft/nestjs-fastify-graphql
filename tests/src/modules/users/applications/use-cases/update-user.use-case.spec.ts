@@ -121,7 +121,7 @@ describe('UpdateUserUseCase', () => {
       userRepositoryMock.findById.mockResolvedValue(existingUserEntity as UserEntity);
 
       await expect(useCase.execute(command)).rejects.toThrow(ForbiddenUserNameError);
-      await expect(useCase.execute(command)).rejects.toThrow('The username "admin" is not allowed');
+      await expect(useCase.execute(command)).rejects.toThrow('The username admin is not allowed');
       expect(userRepositoryMock.update).not.toHaveBeenCalled();
       expect(loggerMock.info).not.toHaveBeenCalled();
     });
