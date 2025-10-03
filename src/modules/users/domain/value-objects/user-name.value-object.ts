@@ -1,13 +1,20 @@
 import { FORBIDDEN_USER_NAMES } from '../constants';
-import { ForbiddenUserNameError } from '../errors';
+import { ForbiddenUserNameError, UserCreationError } from '../errors';
 
 /**
  * Value Object que encapsula y valida un nombre de usuario.
  *
- * Garantiza que el nombre no esté en la lista de nombres prohibidos
- * y proporciona una representación inmutable del valor.
+ * Garantiza que el nombre cumpla con reglas de formato (longitud, caracteres permitidos,
+ * estructura) y reglas de negocio (no estar en lista de nombres prohibidos).
+ * El valor se normaliza automáticamente eliminando espacios al inicio y final.
  *
  * @public
+ * @remarks
+ * El nombre de usuario debe cumplir con:
+ * - Longitud entre 3 y 20 caracteres
+ * - Iniciar con una letra (A-Z o a-z)
+ * - Contener solo letras, números, puntos (.), guiones bajos (_) o guiones (-)
+ * - No estar en la lista de nombres prohibidos
  */
 export class UserName {
   private readonly value: string;
@@ -15,21 +22,74 @@ export class UserName {
   /**
    * Crea una nueva instancia de UserName.
    *
-   * @param value Nombre de usuario a validar.
-   * @throws ForbiddenUserNameError Si el nombre está en la lista de prohibidos.
+   * @param value Nombre de usuario a validar y normalizar.
+   * @throws UserCreationError Si el formato no es válido (vacío, longitud incorrecta, caracteres no permitidos, etc.).
+   * @throws ForbiddenUserNameError Si el nombre está en la lista de nombres prohibidos.
+   * @remarks El valor será normalizado (trim) antes de ser almacenado.
    */
   constructor(value: string) {
-    this.validate(value);
-    this.value = value;
+    this.validateFormat(value);
+    this.validateBusinessRules(value);
+    this.value = value.trim();
   }
 
   /**
-   * Valida que el nombre de usuario no esté prohibido.
+   * Valida el formato técnico del nombre de usuario.
    *
-   * @param value Nombre a validar.
-   * @throws ForbiddenUserNameError Si el nombre está prohibido.
+   * Verifica que el nombre cumpla con los siguientes requisitos:
+   * - No esté vacío o sea solo espacios en blanco
+   * - Tenga al menos 3 caracteres
+   * - No exceda 20 caracteres
+   * - Inicie con una letra (A-Z o a-z)
+   * - Contenga solo letras, números, puntos (.), guiones bajos (_) o guiones (-)
+   *
+   * @param value Valor a validar.
+   * @throws UserCreationError Si alguna validación de formato falla con un mensaje descriptivo.
+   * @private
    */
-  private validate(value: string): void {
+  private validateFormat(value: string): void {
+    const trimmedValue = value.trim();
+    // validate that the username is not empty or just whitespace
+    if (!trimmedValue || trimmedValue.length === 0) {
+      throw new UserCreationError('UserName is required');
+    }
+
+    // validate that the username minimum length is 3
+    if (trimmedValue.length < 3) {
+      throw new UserCreationError('UserName must be at least 3 characters long');
+    }
+
+    // validate that the username maximum length is 20
+    if (trimmedValue.length > 20) {
+      throw new UserCreationError('UserName must be at most 20 characters long');
+    }
+
+    // validate that the username starts with a letter
+    const formatRegex = /^[A-Za-z].*$/;
+    if (!formatRegex.test(trimmedValue)) {
+      throw new UserCreationError('UserName must start with a letter (A-Z or a-z).');
+    }
+
+    // validate that the username contains only letters, numbers, dots, underscores or hyphens
+    if (!/^[A-Za-z0-9._-]+$/.test(trimmedValue)) {
+      throw new UserCreationError(
+        'UserName can include only letters, numbers, dots (.), underscores (_) or hyphens (-).',
+      );
+    }
+  }
+
+  /**
+   * Valida las reglas de negocio del nombre de usuario.
+   *
+   * Verifica que el nombre no esté en la lista de nombres prohibidos definida
+   * en las constantes del dominio. La validación se realiza de forma case-insensitive.
+   *
+   * @param value Valor a validar.
+   * @throws ForbiddenUserNameError Si el nombre está en la lista de nombres prohibidos.
+   * @private
+   * @see FORBIDDEN_USER_NAMES
+   */
+  private validateBusinessRules(value: string): void {
     const normalizedValue = value.toLowerCase().trim();
     if (FORBIDDEN_USER_NAMES.includes(normalizedValue)) {
       throw new ForbiddenUserNameError(value);
@@ -37,30 +97,12 @@ export class UserName {
   }
 
   /**
-   * Obtiene el valor del nombre de usuario.
+   * Obtiene el valor normalizado del nombre de usuario.
    *
-   * @returns El nombre de usuario validado.
+   * @returns El nombre de usuario validado, normalizado y sin espacios al inicio/final.
+   * @public
    */
   getValue(): string {
-    return this.value;
-  }
-
-  /**
-   * Compara este UserName con otro para verificar igualdad.
-   *
-   * @param other Otro UserName a comparar.
-   * @returns true si son iguales, false en caso contrario.
-   */
-  equals(other: UserName): boolean {
-    return this.value.toLowerCase() === other.value.toLowerCase();
-  }
-
-  /**
-   * Retorna la representación en string del nombre de usuario.
-   *
-   * @returns El valor del nombre de usuario.
-   */
-  toString(): string {
     return this.value;
   }
 }

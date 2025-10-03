@@ -1,12 +1,13 @@
 import { UserRole, UserStatus } from '@/modules/users/domain/enums/user.enum';
-import { IsUserEmail, IsUserName, IsUserPassword } from '@/shared/applications/decorators';
+import { IsUserEmail, IsUserPassword } from '@/shared/applications/decorators';
 import { Field, InputType } from '@nestjs/graphql';
-import { IsEnum, IsOptional } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 @InputType({ description: 'Input data for creating a new user' })
 export class CreateUserInputDto {
   @Field(() => String, { description: 'UserName of the new user' })
-  @IsUserName()
+  @IsString({ message: 'UserName must be a string' })
+  @IsNotEmpty({ message: 'UserName should not be empty' })
   userName!: string;
 
   @Field(() => String, { description: 'Email address of the new user' })

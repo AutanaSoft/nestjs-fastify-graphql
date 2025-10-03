@@ -1,5 +1,5 @@
-import { HttpStatus } from '@nestjs/common';
 import { DomainBaseError } from '@/shared/domain/errors/domain-base.error';
+import { HttpStatus } from '@nestjs/common';
 import { GraphQLErrorOptions } from 'graphql';
 
 /**
@@ -74,6 +74,25 @@ export class UserUpdateFailedError extends DomainBaseError {
         code: 'USER_UPDATE_FAILED',
         status: HttpStatus.INTERNAL_SERVER_ERROR,
         userId,
+        ...options?.extensions,
+      },
+    });
+    this.name = this.constructor.name;
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+/**
+ * Error de dominio que indica que la validación de los datos del usuario falló.
+ * @public
+ */
+export class UserCreationError extends DomainBaseError {
+  constructor(message: string, options?: GraphQLErrorOptions) {
+    super(message || 'User validation error', {
+      ...options,
+      extensions: {
+        code: 'USER_VALIDATION_ERROR',
+        status: HttpStatus.BAD_REQUEST,
         ...options?.extensions,
       },
     });
