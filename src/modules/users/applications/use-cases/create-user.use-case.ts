@@ -1,3 +1,4 @@
+import { HashUtils } from '@/shared/applications/utils';
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { UserEntity } from '../../domain/entities';
@@ -35,11 +36,12 @@ export class CreateUserUseCase {
     const userName = new UserName(command.data.userName);
     const userEmail = new UserEmail(command.data.email);
     const userPassword = new UserPassword(command.data.password);
+    const hashedPassword = await HashUtils.hashPassword(userPassword.getValue());
     const user = await this.userRepository.create({
       ...command.data,
       userName: userName.getValue(),
       email: userEmail.getValue(),
-      password: userPassword.getValue(),
+      password: hashedPassword,
     });
     this.logger.info(`User created with ID: ${user.id}`);
     return user;
