@@ -19,7 +19,6 @@ import { LoggerModule } from 'nestjs-pino';
 import { AppController } from './app.controller';
 import { AppResolver } from './app.resolver';
 import { AppService } from './app.service';
-import { DatabaseModule } from './database/database.module';
 import { UsersModule } from './modules/users/users.module';
 import { GraphQLExceptionFilter } from './shared/infrastructure/filters';
 import { GqlThrottlerGuard } from './shared/infrastructure/guards/gql-throttler.guard';
@@ -49,7 +48,6 @@ import { SharedModule } from './shared/shared.module';
       useFactory: createThrottlerModuleOptions,
     }),
     SharedModule,
-    DatabaseModule,
     UsersModule,
   ],
   controllers: [AppController],

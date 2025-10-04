@@ -8,22 +8,22 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("DB_URL")
 }
 
 /// Roles asignados a los usuarios
 enum UserRole {
-  ADMIN @map("admin")
-  USER  @map("user")
-  GUEST @map("guest")
+  ADMIN
+  USER
+  GUEST
 }
 
 /// Estado de los usuarios en el sistema
 enum UserStatus {
-  REGISTERED @map("registered")
-  ACTIVE     @map("active")
-  SUSPENDED  @map("suspended")
-  BANNED     @map("banned")
+  REGISTERED
+  ACTIVE
+  SUSPENDED
+  BANNED
 }
 
 /// Entidad de usuario del sistema

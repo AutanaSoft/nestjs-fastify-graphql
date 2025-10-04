@@ -1,8 +1,8 @@
 -- CreateEnum
-CREATE TYPE "UserRole" AS ENUM ('admin', 'user', 'guest');
+CREATE TYPE "UserRole" AS ENUM ('ADMIN', 'USER', 'GUEST');
 
 -- CreateEnum
-CREATE TYPE "UserStatus" AS ENUM ('registered', 'active', 'suspended', 'banned');
+CREATE TYPE "UserStatus" AS ENUM ('REGISTERED', 'ACTIVE', 'SUSPENDED', 'BANNED');
 
 -- CreateTable
 CREATE TABLE "users" (
@@ -10,8 +10,8 @@ CREATE TABLE "users" (
     "email" VARCHAR(64) NOT NULL,
     "user_name" VARCHAR(20) NOT NULL,
     "password" VARCHAR(64) NOT NULL,
-    "status" "UserStatus" NOT NULL DEFAULT 'registered',
-    "role" "UserRole" NOT NULL DEFAULT 'user',
+    "status" "UserStatus" NOT NULL DEFAULT 'REGISTERED',
+    "role" "UserRole" NOT NULL DEFAULT 'USER',
     "created_at" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(6) NOT NULL,
 
