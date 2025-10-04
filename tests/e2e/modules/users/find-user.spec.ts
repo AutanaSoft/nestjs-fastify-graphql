@@ -131,7 +131,7 @@ export const findUserSpec = (getApp: () => NestFastifyApplication) => {
         const error = graphqlResponse.errors?.[0];
         expect(error).toBeDefined();
         expect(error?.message).toBe('Email must be a valid email address.');
-        expect(error?.extensions?.code).toBe('BAD_REQUEST');
+        expect(error?.extensions?.code).toBe('USER_VALIDATION_ERROR');
         expect(error?.extensions?.status).toBe(HttpStatus.BAD_REQUEST);
       });
 

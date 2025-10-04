@@ -153,7 +153,7 @@ describe('FindUserByEmailUseCase', () => {
 
       const result = await useCase.execute(query);
 
-      expect(userRepositoryMock.findByEmail).toHaveBeenCalledWith(upperCaseEmail);
+      expect(userRepositoryMock.findByEmail).toHaveBeenCalledWith(upperCaseEmail.toLowerCase());
       expect(result.email).toBe(upperCaseEmail);
     });
 

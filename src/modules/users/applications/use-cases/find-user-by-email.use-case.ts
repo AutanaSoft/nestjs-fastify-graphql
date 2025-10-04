@@ -3,6 +3,7 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { UserEntity } from '../../domain/entities';
 import { UserNotFoundError } from '../../domain/errors';
 import { USER_REPOSITORY, UserRepository } from '../../domain/repository';
+import { UserEmail } from '../../domain/value-objects';
 import { FindUserByEmailArgsDto } from '../dto/args';
 
 /**
@@ -30,10 +31,11 @@ export class FindUserByEmailUseCase {
    * @throws Error Si la operación de búsqueda falla.
    */
   async execute(query: FindUserByEmailArgsDto): Promise<UserEntity> {
-    const user = await this.userRepository.findByEmail(query.email);
+    const userEmail = new UserEmail(query.email);
+    const user = await this.userRepository.findByEmail(userEmail.getValue());
     if (!user) {
-      this.logger.warn(`User not found with email: ${query.email}`);
-      throw new UserNotFoundError(`User not found with email: ${query.email}`);
+      this.logger.warn(`User not found with email: ${userEmail.getValue()}`);
+      throw new UserNotFoundError(`User not found with email: ${userEmail.getValue()}`);
     }
     this.logger.info(`User found with email: ${user.email}`);
     return user;

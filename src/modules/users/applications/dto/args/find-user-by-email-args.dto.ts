@@ -1,5 +1,5 @@
 import { ArgsType, Field } from '@nestjs/graphql';
-import { IsUserEmail } from '@/shared/applications/decorators';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 /**
  * DTO de argumentos para buscar un usuario por su dirección de correo electrónico.
@@ -9,6 +9,7 @@ import { IsUserEmail } from '@/shared/applications/decorators';
 @ArgsType()
 export class FindUserByEmailArgsDto {
   @Field(() => String, { description: 'User email address' })
-  @IsUserEmail()
+  @IsNotEmpty({ message: 'Email should not be empty' })
+  @IsString({ message: 'Email must be a string' })
   email!: string;
 }

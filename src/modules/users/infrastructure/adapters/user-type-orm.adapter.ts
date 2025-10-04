@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 
 import { HandlerOrmErrorsService } from '@/shared/applications/services/handler-orm-errors.service';
 import { UserEntity } from '../../domain/entities';
@@ -88,14 +88,16 @@ export class UserTypeOrmAdapter implements UserRepository {
 
   /**
    * Recupera un usuario a partir de su correo electrónico.
+   *
    * @param email Correo electrónico del usuario.
    * @returns Promesa con la entidad encontrada o null.
    * @throws DataBaseError Cuando ocurre un fallo al consultar datos.
+   * @remarks La búsqueda se realiza de forma case-insensitive usando el operador ILIKE de PostgreSQL.
    */
   async findByEmail(email: string): Promise<UserEntity | null> {
     try {
       this.logger.info({ findUserByEmail: email }, 'Finding user by email...');
-      return await this.userRepository.findOne({ where: { email } });
+      return await this.userRepository.findOne({ where: { email: ILike(email) } });
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         notFound: 'User with this email not found',
