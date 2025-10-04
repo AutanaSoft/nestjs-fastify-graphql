@@ -2,13 +2,19 @@ import { ConflictError, DataBaseError, NotFoundError } from '@/shared/domain/err
 import { Injectable } from '@nestjs/common';
 import { GraphQLErrorOptions } from 'graphql';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { EntityNotFoundError, QueryFailedError } from 'typeorm';
+import {
+  PrismaClientInitializationError,
+  PrismaClientKnownRequestError,
+  PrismaClientRustPanicError,
+  PrismaClientUnknownRequestError,
+  PrismaClientValidationError,
+} from '@prisma/client/runtime/library';
 import { HANDLER_ORM_ERRORS_DEFAULT_MESSAGE } from '../constants';
-import { HandlerOrmErrorMessagesType, QueryFailedDriverError } from '../types';
+import { HandlerOrmErrorMessagesType, PrismaErrorMeta } from '../types';
 
 @Injectable()
 /**
- * Gestiona los errores generados por TypeORM y los mapea a excepciones.
+ * Gestiona los errores generados por Prisma ORM y los mapea a excepciones de dominio.
  * @public
  */
 export class HandlerOrmErrorsService {
@@ -18,12 +24,12 @@ export class HandlerOrmErrorsService {
   ) {}
 
   /**
-   * Procesa un error de TypeORM y lanza la excepción correspondiente.
+   * Procesa un error de Prisma y lanza la excepción de dominio correspondiente.
    * @param error Error capturado en la capa de infraestructura.
    * @param errorsMessages Mensajes personalizados por tipo de error.
    * @returns Nunca retorna porque siempre lanza una excepción.
-   * @throws NotFoundError Cuando la entidad no existe.
-   * @throws ConflictError Cuando ocurre una violación de unicidad.
+   * @throws NotFoundError Cuando el registro no existe (P2025).
+   * @throws ConflictError Cuando ocurre una violación de unicidad (P2002).
    * @throws DataBaseError Cuando se detecta otro error de base de datos.
    */
   public handleError(
@@ -36,17 +42,31 @@ export class HandlerOrmErrorsService {
     };
 
     this.logger.assign({ error });
-    this.logger.debug('Handling ORM error...');
+    this.logger.debug('Handling Prisma error...');
 
-    if (error instanceof EntityNotFoundError) {
-      this.logger.debug('EntityNotFoundError detected');
-      throw new NotFoundError(mergedMessages.notFound, this.buildGraphQLErrorOptions(error));
+    if (error instanceof PrismaClientKnownRequestError) {
+      this.logger.debug('PrismaClientKnownRequestError detected');
+      return this.handleKnownRequestError(error, mergedMessages);
     }
 
-    // procesamos los errores de TypeORM conocidos
-    if (error instanceof QueryFailedError) {
-      this.logger.debug('QueryFailedError detected');
-      return this.handleQueryFailedError(error as QueryFailedError<Error>, mergedMessages);
+    if (error instanceof PrismaClientValidationError) {
+      this.logger.debug('PrismaClientValidationError detected');
+      throw new DataBaseError(mergedMessages.validation, this.buildGraphQLErrorOptions(error));
+    }
+
+    if (error instanceof PrismaClientInitializationError) {
+      this.logger.debug('PrismaClientInitializationError detected');
+      throw new DataBaseError(mergedMessages.connection, this.buildGraphQLErrorOptions(error));
+    }
+
+    if (error instanceof PrismaClientRustPanicError) {
+      this.logger.error('PrismaClientRustPanicError detected');
+      throw new DataBaseError(mergedMessages.unknown, this.buildGraphQLErrorOptions(error));
+    }
+
+    if (error instanceof PrismaClientUnknownRequestError) {
+      this.logger.debug('PrismaClientUnknownRequestError detected');
+      throw new DataBaseError(mergedMessages.unknown, this.buildGraphQLErrorOptions(error));
     }
 
     return this.handleUnknownError(error, mergedMessages);
@@ -61,51 +81,60 @@ export class HandlerOrmErrorsService {
    */
   private handleUnknownError(error: unknown, errorsMessages: HandlerOrmErrorMessagesType): never {
     this.logger.assign({ method: 'handleUnknownError' });
-    this.logger.error({ error }, 'Unknown ORM error detected');
+    this.logger.error({ error }, 'Unknown Prisma error detected');
     throw new DataBaseError(errorsMessages.unknown, this.buildGraphQLErrorOptions(error));
   }
 
   /**
-   * Interpreta un QueryFailedError y lanza la excepción apropiada.
-   * @param error Error producido durante la ejecución de la consulta.
+   * Interpreta un PrismaClientKnownRequestError y lanza la excepción apropiada.
+   * @param error Error conocido producido por Prisma durante la ejecución.
    * @param errorMessages Mensajes configurados para cada categoría.
    * @returns Nunca retorna porque lanza una excepción.
-   * @throws ConflictError Cuando se incumple una restricción de unicidad.
+   * @throws NotFoundError Cuando el registro no existe (P2025).
+   * @throws ConflictError Cuando se incumple una restricción de unicidad (P2002).
    * @throws DataBaseError Para otras violaciones o fallos de conexión.
    */
-  private handleQueryFailedError(
-    error: QueryFailedError<Error>,
+  private handleKnownRequestError(
+    error: PrismaClientKnownRequestError,
     errorMessages: HandlerOrmErrorMessagesType,
   ): never {
-    const driverError =
-      (error as unknown as { driverError?: QueryFailedDriverError })?.driverError ?? {};
+    const meta = (error.meta ?? {}) as PrismaErrorMeta;
     this.logger.assign({
-      method: 'handleQueryFailedError',
-      driverError: {
-        code: driverError.code,
-        detail: driverError.detail,
-        schema: driverError.schema,
-        table: driverError.table,
-        constraint: driverError.constraint,
+      method: 'handleKnownRequestError',
+      code: error.code,
+      meta: {
+        target: meta.target,
+        modelName: meta.modelName,
+        cause: meta.cause,
+        constraint: meta.constraint,
       },
     });
 
-    const code = driverError.code;
-    switch (code) {
-      case '23505': // unique_violation
+    switch (error.code) {
+      case 'P2002': // Unique constraint violation
         throw new ConflictError(
           errorMessages.uniqueConstraint,
           this.buildGraphQLErrorOptions(error),
         );
-      case '23503': // foreign_key_violation
-      case '23502': // not_null_violation
-      case '23514': // check_violation
-      case '22P02': // invalid_text_representation
-      case '22007': // invalid_datetime_format
-      case '22001': // string_data_right_truncation
+      case 'P2025': // Record not found
+        throw new NotFoundError(errorMessages.notFound, this.buildGraphQLErrorOptions(error));
+      case 'P2003': // Foreign key constraint violation
+        throw new DataBaseError(
+          errorMessages.foreignKeyConstraint,
+          this.buildGraphQLErrorOptions(error),
+        );
+      case 'P2011': // Null constraint violation
+      case 'P2012': // Missing required value
+      case 'P2013': // Missing required argument
+      case 'P2014': // Required relation violation
+      case 'P2015': // Related record not found
+      case 'P2019': // Input error
+      case 'P2020': // Value out of range
         throw new DataBaseError(errorMessages.validation, this.buildGraphQLErrorOptions(error));
-      case '08006': // connection_failure
-      case '08003': // connection_does_not_exist
+      case 'P1001': // Can't reach database server
+      case 'P1002': // Database server timeout
+      case 'P1008': // Operations timed out
+      case 'P1017': // Server has closed the connection
         throw new DataBaseError(errorMessages.connection, this.buildGraphQLErrorOptions(error));
       default:
         throw new DataBaseError(errorMessages.unknown, this.buildGraphQLErrorOptions(error));
@@ -114,7 +143,7 @@ export class HandlerOrmErrorsService {
 
   /**
    * Construye opciones para ofrecer el error original en GraphQL.
-   * @param error Error recibido desde TypeORM.
+   * @param error Error recibido desde Prisma.
    * @returns Opciones para GraphQLError o undefined.
    */
   private buildGraphQLErrorOptions(error: unknown): GraphQLErrorOptions | undefined {

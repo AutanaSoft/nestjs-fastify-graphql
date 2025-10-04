@@ -12,21 +12,16 @@ export type HandlerOrmErrorMessagesType = {
 };
 
 /**
- * Códigos de error para personalizar el mapeo de errores de ORM.
- * @remarks Se usa para mapear errores de infraestructura a mensajes de Aplicación.
+ * Meta información del error de Prisma.
+ * @remarks Contiene detalles adicionales sobre el error de base de datos.
  */
-export type HandlerOrmErrorCodeType = {
-  readonly notFound?: string;
-};
-
-/**
- * Error del driver de la base de datos.
- * @remarks Se usa para extraer información adicional del error.
- */
-export type QueryFailedDriverError = {
-  readonly code?: string;
-  readonly detail?: string;
-  readonly schema?: string;
-  readonly table?: string;
+export type PrismaErrorMeta = {
+  readonly target?: string[];
+  readonly modelName?: string;
+  readonly cause?: string;
+  readonly field_name?: string;
   readonly constraint?: string;
+  readonly table?: string;
+  readonly column?: string;
+  readonly database_error?: string;
 };
