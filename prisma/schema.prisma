@@ -1,0 +1,44 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Roles asignados a los usuarios
+enum UserRole {
+  ADMIN @map("admin")
+  USER  @map("user")
+  GUEST @map("guest")
+}
+
+/// Estado de los usuarios en el sistema
+enum UserStatus {
+  REGISTERED @map("registered")
+  ACTIVE     @map("active")
+  SUSPENDED  @map("suspended")
+  BANNED     @map("banned")
+}
+
+/// Entidad de usuario del sistema
+model User {
+  id        String     @id @default(uuid()) @db.Uuid
+  email     String     @unique @db.VarChar(64)
+  userName  String     @unique @map("user_name") @db.VarChar(20)
+  password  String     @db.VarChar(64)
+  status    UserStatus @default(REGISTERED)
+  role      UserRole   @default(USER)
+  createdAt DateTime   @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime   @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  @@index([email])
+  @@index([userName])
+  @@index([createdAt])
+  @@map("users")
+}
