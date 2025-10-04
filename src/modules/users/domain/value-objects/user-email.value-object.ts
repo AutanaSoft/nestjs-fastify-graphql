@@ -1,13 +1,27 @@
+import { isEmail } from 'class-validator';
 import { FORBIDDEN_EMAIL_DOMAINS } from '../constants';
-import { ForbiddenEmailDomainError } from '../errors';
+import { ForbiddenEmailDomainError, UserCreationError } from '../errors';
 
 /**
  * Value Object que encapsula y valida un email de usuario.
  *
- * Garantiza que el dominio del email no esté en la lista de dominios
- * prohibidos y proporciona una representación inmutable del valor.
+ * Garantiza que el email cumpla con reglas de formato (sintaxis válida, longitud)
+ * y reglas de negocio (dominio no esté en lista de prohibidos).
+ * El valor se normaliza automáticamente a minúsculas y sin espacios.
  *
  * @public
+ * @remarks
+ * El email debe cumplir con:
+ * - Formato de email válido según RFC 5322
+ * - Longitud máxima de 64 caracteres
+ * - Dominio no estar en la lista de dominios prohibidos
+ * - Se normaliza automáticamente a minúsculas
+ *
+ * @example
+ * ```typescript
+ * const email = new UserEmail('john.doe@example.com');
+ * console.log(email.getValue()); // "john.doe@example.com"
+ * ```
  */
 export class UserEmail {
   private readonly value: string;
@@ -15,33 +29,76 @@ export class UserEmail {
   /**
    * Crea una nueva instancia de UserEmail.
    *
-   * @param value Email de usuario a validar.
-   * @throws ForbiddenEmailDomainError Si el dominio está en la lista de prohibidos.
+   * @param value Email de usuario a validar y normalizar.
+   * @throws UserCreationError Si el formato no es válido (vacío, longitud incorrecta, sintaxis inválida).
+   * @throws ForbiddenEmailDomainError Si el dominio está en la lista de dominios prohibidos.
+   * @remarks El valor será normalizado (trim y toLowerCase) antes de ser almacenado.
    */
   constructor(value: string) {
-    this.validate(value);
-    this.value = value;
+    this.validateFormat(value);
+    this.validateBusinessRules(value);
+    this.value = value.trim().toLowerCase();
   }
 
   /**
-   * Valida que el dominio del email no esté prohibido.
+   * Valida el formato técnico del email.
    *
-   * @param value Email a validar.
-   * @throws ForbiddenEmailDomainError Si el dominio está prohibido.
+   * Verifica que el email cumpla con los siguientes requisitos:
+   * - No esté vacío o sea solo espacios en blanco
+   * - No exceda 64 caracteres de longitud
+   * - Tenga formato de email válido según RFC 5322
+   *
+   * @param value Valor a validar.
+   * @throws UserCreationError Si alguna validación de formato falla con un mensaje descriptivo.
+   * @private
    */
-  private validate(value: string): void {
-    const domain = this.extractDomain(value);
-    const normalizedDomain = domain.toLowerCase().trim();
-    if (FORBIDDEN_EMAIL_DOMAINS.includes(normalizedDomain)) {
+  private validateFormat(value: string): void {
+    const normalizedValue = value.trim().toLowerCase();
+
+    if (!normalizedValue || normalizedValue.length === 0) {
+      throw new UserCreationError('Email is required');
+    }
+
+    if (normalizedValue.length > 64) {
+      throw new UserCreationError('Email must be at most 64 characters long');
+    }
+
+    if (!isEmail(normalizedValue)) {
+      throw new UserCreationError('Email must be a valid email address');
+    }
+  }
+
+  /**
+   * Valida las reglas de negocio del email.
+   *
+   * Verifica que el dominio del email no esté en la lista de dominios prohibidos
+   * definida en las constantes del dominio. La validación se realiza de forma
+   * case-insensitive sobre el dominio extraído.
+   *
+   * @param value Valor a validar.
+   * @throws ForbiddenEmailDomainError Si el dominio está en la lista de dominios prohibidos.
+   * @private
+   * @see FORBIDDEN_EMAIL_DOMAINS
+   */
+  private validateBusinessRules(value: string): void {
+    const normalizedValue = value.trim().toLowerCase();
+    const domain = this.extractDomain(normalizedValue);
+    if (FORBIDDEN_EMAIL_DOMAINS.includes(domain)) {
       throw new ForbiddenEmailDomainError(value, domain);
     }
   }
 
   /**
-   * Extrae el dominio de un email.
+   * Extrae el dominio de una dirección de email.
    *
-   * @param email Email del cual extraer el dominio.
-   * @returns El dominio del email.
+   * Separa la dirección de email por el carácter '@' y retorna la parte
+   * correspondiente al dominio (después del @).
+   *
+   * @param email Dirección de email del cual extraer el dominio.
+   * @returns El dominio del email, o una cadena vacía si el formato es inválido.
+   * @private
+   * @example
+   * extractDomain('user@example.com') // returns 'example.com'
    */
   private extractDomain(email: string): string {
     const parts = email.split('@');
@@ -49,30 +106,15 @@ export class UserEmail {
   }
 
   /**
-   * Obtiene el valor del email de usuario.
+   * Obtiene el valor normalizado del email.
    *
-   * @returns El email de usuario validado.
+   * El valor retornado está normalizado en minúsculas y sin espacios en blanco
+   * al inicio o final, garantizando consistencia en comparaciones y almacenamiento.
+   *
+   * @returns El email validado y normalizado en minúsculas.
+   * @public
    */
   getValue(): string {
-    return this.value;
-  }
-
-  /**
-   * Compara este UserEmail con otro para verificar igualdad.
-   *
-   * @param other Otro UserEmail a comparar.
-   * @returns true si son iguales, false en caso contrario.
-   */
-  equals(other: UserEmail): boolean {
-    return this.value.toLowerCase() === other.value.toLowerCase();
-  }
-
-  /**
-   * Retorna la representación en string del email de usuario.
-   *
-   * @returns El valor del email de usuario.
-   */
-  toString(): string {
     return this.value;
   }
 }

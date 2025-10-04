@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { UserEntity } from '../../domain/entities';
 import { USER_REPOSITORY, UserRepository } from '../../domain/repository';
-import { UserEmail, UserName } from '../../domain/value-objects';
+import { UserEmail, UserName, UserPassword } from '../../domain/value-objects';
 import { CreateUserArgsDto } from '../dto/args';
 
 /**
@@ -34,10 +34,12 @@ export class CreateUserUseCase {
   async execute(command: CreateUserArgsDto): Promise<UserEntity> {
     const userName = new UserName(command.data.userName);
     const userEmail = new UserEmail(command.data.email);
+    const userPassword = new UserPassword(command.data.password);
     const user = await this.userRepository.create({
       ...command.data,
       userName: userName.getValue(),
       email: userEmail.getValue(),
+      password: userPassword.getValue(),
     });
     this.logger.info(`User created with ID: ${user.id}`);
     return user;

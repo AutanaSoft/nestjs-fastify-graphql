@@ -30,7 +30,7 @@ export class UserName {
   constructor(value: string) {
     this.validateFormat(value);
     this.validateBusinessRules(value);
-    this.value = value.trim();
+    this.value = value;
   }
 
   /**
@@ -103,6 +103,6 @@ export class UserName {
    * @public
    */
   getValue(): string {
-    return this.value;
+    return this.value.trim();
   }
 }
