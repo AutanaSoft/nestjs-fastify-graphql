@@ -1,3 +1,4 @@
+import { HttpStatus } from '@nestjs/common';
 import { GraphQLError, GraphQLErrorOptions } from 'graphql';
 
 /**
@@ -32,7 +33,7 @@ export class DataBaseError extends DomainBaseError {
       ...options,
       extensions: {
         code: 'DATA_BASE_SERVER_ERROR',
-        statusCode: 500,
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
         ...options?.extensions,
       },
     });
@@ -56,10 +57,12 @@ export class ConflictError extends DomainBaseError {
       ...options,
       extensions: {
         code: 'CONFLICT',
-        statusCode: 409,
+        status: HttpStatus.CONFLICT,
         ...options?.extensions,
       },
     });
+    this.name = this.constructor.name;
+    Object.setPrototypeOf(this, new.target.prototype);
   }
 }
 
@@ -78,7 +81,7 @@ export class NotFoundError extends DomainBaseError {
       ...options,
       extensions: {
         code: 'NOT_FOUND',
-        statusCode: 404,
+        status: HttpStatus.NOT_FOUND,
         ...options?.extensions,
       },
     });
@@ -102,7 +105,7 @@ export class ExternalServiceError extends DomainBaseError {
       ...options,
       extensions: {
         code: 'EXTERNAL_SERVICE_ERROR',
-        statusCode: 502,
+        status: HttpStatus.BAD_GATEWAY,
         ...options?.extensions,
       },
     });

@@ -113,6 +113,7 @@ applyTo: '**'
   - Add context
   - Otherwise, use a global handler
 - Log errors with sufficient context
+- See `error-handling.instructions.md` for detailed error creation and management guidelines
 
 ## DTOs and validation
 
@@ -147,17 +148,19 @@ applyTo: '**'
 
 ## Error handling
 
+For comprehensive error handling guidelines, refer to `error-handling.instructions.md`.
+
 ### Exception generation rules
 
 - Generate specific and descriptive error types
-- Create domain-specific exceptions
-- Generate application-specific exceptions
-- Create infrastructure-specific exceptions
-- Provide context and error messages
+- Create domain-specific exceptions extending `DomainBaseError`
+- Generate application-specific exceptions when needed
+- Create infrastructure-specific exceptions extending `InfrastructureBaseError`
+- Provide context and error messages in English
 - Create error hierarchies with base classes
-- Use appropriate exception filters
-- Implement proper error mapping
+- Use appropriate exception filters (GraphQLExceptionFilter)
+- Implement proper error mapping with extensions
 - Handle infrastructure errors correctly
-- Use appropriate logging
+- Use appropriate logging based on error layer
 - Implement proper validation
-- Return appropriate GraphQL errors
+- Return appropriate GraphQL errors with status codes and error codes

@@ -30,6 +30,7 @@ src/modules/moduleName/
 │   └── use-cases/          # Business logic orchestration
 ├── domain/                 # Domain layer (pure business logic)
 │   ├── entities/           # Domain entities
+│   ├── errors/             # Domain-specific errors
 │   ├── repositories/       # Repository interfaces (contracts)
 │   ├── services/           # Domain services (business rules)
 │   └── types/              # Domain types and interfaces
@@ -49,11 +50,13 @@ src/shared/
 ├── domain/                # Domain layer (pure business logic)
 │   ├── entities/          # Shared domain entities
 │   ├── enums/             # Domain enums
+│   ├── errors/            # Shared domain errors
 │   ├── interfaces/        # Domain interfaces
 │   ├── types/             # Domain types
 │   └── value-objects/     # Value objects
 ├── infrastructure/        # Infrastructure layer
 │   ├── adapters/          # External system adapters (TypeORM, Redis, etc.)
+│   ├── errors/            # Infrastructure-specific errors
 │   ├── guards/            # NestJS guards
 │   ├── interceptors/      # NestJS interceptors
 │   ├── middleware/        # Express middleware
