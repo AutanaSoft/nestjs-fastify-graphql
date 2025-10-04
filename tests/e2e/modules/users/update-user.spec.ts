@@ -96,8 +96,8 @@ export const updateUserSpec = (getApp: () => NestFastifyApplication) => {
       expect(graphqlResponse.errors).toBeDefined();
       const error = graphqlResponse.errors?.[0];
       expect(error).toBeDefined();
-      expect(error?.message).toBe('UserName must contain at least 4 characters.');
-      expect(error?.extensions?.code).toBe('BAD_REQUEST');
+      expect(error?.message).toBe('UserName must be at least 3 characters long.');
+      expect(error?.extensions?.code).toBe('USER_VALIDATION_ERROR');
       expect(error?.extensions?.status).toBe(HttpStatus.BAD_REQUEST);
       expect(error?.path?.[0]).toBe('updateUser');
     });

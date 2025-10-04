@@ -17,6 +17,10 @@ import { ForbiddenUserNameError, UserCreationError } from '../errors';
  * - No estar en la lista de nombres prohibidos
  */
 export class UserName {
+  private readonly MIN_LENGTH = 3;
+  private readonly MAX_LENGTH = 20;
+  private readonly STARTS_WITH_LETTER_REGEX = /^[A-Za-z].*$/;
+  private readonly ALLOWED_CHARACTERS_REGEX = /^[A-Za-z0-9._-]+$/;
   private readonly value: string;
 
   /**
@@ -51,27 +55,27 @@ export class UserName {
     const trimmedValue = value.trim();
     // validate that the username is not empty or just whitespace
     if (!trimmedValue || trimmedValue.length === 0) {
-      throw new UserCreationError('UserName is required');
+      throw new UserCreationError('UserName is required.');
     }
 
     // validate that the username minimum length is 3
-    if (trimmedValue.length < 3) {
-      throw new UserCreationError('UserName must be at least 3 characters long');
+    if (trimmedValue.length < this.MIN_LENGTH) {
+      throw new UserCreationError(`UserName must be at least ${this.MIN_LENGTH} characters long.`);
     }
 
     // validate that the username maximum length is 20
-    if (trimmedValue.length > 20) {
-      throw new UserCreationError('UserName must be at most 20 characters long');
+    if (trimmedValue.length > this.MAX_LENGTH) {
+      throw new UserCreationError(`UserName must be at most ${this.MAX_LENGTH} characters long`);
     }
 
     // validate that the username starts with a letter
-    const formatRegex = /^[A-Za-z].*$/;
+    const formatRegex = this.STARTS_WITH_LETTER_REGEX;
     if (!formatRegex.test(trimmedValue)) {
       throw new UserCreationError('UserName must start with a letter (A-Z or a-z).');
     }
 
     // validate that the username contains only letters, numbers, dots, underscores or hyphens
-    if (!/^[A-Za-z0-9._-]+$/.test(trimmedValue)) {
+    if (!this.ALLOWED_CHARACTERS_REGEX.test(trimmedValue)) {
       throw new UserCreationError(
         'UserName can include only letters, numbers, dots (.), underscores (_) or hyphens (-).',
       );

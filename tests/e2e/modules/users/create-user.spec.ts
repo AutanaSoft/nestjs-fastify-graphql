@@ -48,7 +48,7 @@ export const createUserSpec = (getApp: () => NestFastifyApplication) => {
       const error = graphqlResponse.errors?.[0];
       expect(error).toBeDefined();
       expect(error?.message).toBe('Email must be a valid email address.');
-      expect(error?.extensions?.code).toBe('BAD_REQUEST');
+      expect(error?.extensions?.code).toBe('USER_VALIDATION_ERROR');
       expect(error?.extensions?.status).toBe(HttpStatus.BAD_REQUEST);
       expect(error?.path?.[0]).toBe('createUser');
     });
@@ -72,8 +72,8 @@ export const createUserSpec = (getApp: () => NestFastifyApplication) => {
       expect(graphqlResponse.errors).toBeDefined();
       const error = graphqlResponse.errors?.[0];
       expect(error).toBeDefined();
-      expect(error?.message).toBe('UserName must contain at least 4 characters.');
-      expect(error?.extensions?.code).toBe('BAD_REQUEST');
+      expect(error?.message).toBe('UserName must be at least 3 characters long.');
+      expect(error?.extensions?.code).toBe('USER_VALIDATION_ERROR');
       expect(error?.extensions?.status).toBe(HttpStatus.BAD_REQUEST);
       expect(error?.path?.[0]).toBe('createUser');
     });
@@ -98,9 +98,9 @@ export const createUserSpec = (getApp: () => NestFastifyApplication) => {
       const error = graphqlResponse.errors?.[0];
       expect(error).toBeDefined();
       expect(error?.message).toBe(
-        'Password must include uppercase, lowercase, numeric and special characters (@$!%*?&).',
+        'Password must include at least one uppercase letter, one lowercase letter, one digit, and one special character (@$!%*?&)',
       );
-      expect(error?.extensions?.code).toBe('BAD_REQUEST');
+      expect(error?.extensions?.code).toBe('USER_VALIDATION_ERROR');
       expect(error?.extensions?.status).toBe(HttpStatus.BAD_REQUEST);
       expect(error?.path?.[0]).toBe('createUser');
     });

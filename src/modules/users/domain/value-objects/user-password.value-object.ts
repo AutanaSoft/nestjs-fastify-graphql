@@ -63,20 +63,20 @@ export class UserPassword {
 
     // Validar que la contraseña no esté vacía
     if (!trimmedValue || trimmedValue.length === 0) {
-      throw new UserCreationError('Password is required');
+      throw new UserCreationError('Password is required.');
     }
 
     // Validar longitud mínima
     if (trimmedValue.length < UserPassword.MIN_LENGTH) {
       throw new UserCreationError(
-        `Password must be at least ${UserPassword.MIN_LENGTH} characters long`,
+        `Password must be at least ${UserPassword.MIN_LENGTH} characters long.`,
       );
     }
 
     // Validar longitud máxima
     if (trimmedValue.length > UserPassword.MAX_LENGTH) {
       throw new UserCreationError(
-        `Password must be at most ${UserPassword.MAX_LENGTH} characters long`,
+        `Password must be at most ${UserPassword.MAX_LENGTH} characters long.`,
       );
     }
 

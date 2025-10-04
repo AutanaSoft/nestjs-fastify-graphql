@@ -24,6 +24,7 @@ import { ForbiddenEmailDomainError, UserCreationError } from '../errors';
  * ```
  */
 export class UserEmail {
+  private readonly MAX_LENGTH = 64;
   private readonly value: string;
 
   /**
@@ -56,15 +57,15 @@ export class UserEmail {
     const normalizedValue = value.trim().toLowerCase();
 
     if (!normalizedValue || normalizedValue.length === 0) {
-      throw new UserCreationError('Email is required');
+      throw new UserCreationError('Email is required.');
     }
 
-    if (normalizedValue.length > 64) {
-      throw new UserCreationError('Email must be at most 64 characters long');
+    if (normalizedValue.length > this.MAX_LENGTH) {
+      throw new UserCreationError(`Email must be at most ${this.MAX_LENGTH} characters long.`);
     }
 
     if (!isEmail(normalizedValue)) {
-      throw new UserCreationError('Email must be a valid email address');
+      throw new UserCreationError('Email must be a valid email address.');
     }
   }
 
