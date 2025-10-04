@@ -6,6 +6,7 @@
     "nestjs",
     "openssl",
     "parseados",
+    "postgres",
     "postgresql",
     "rhel",
     "swcrc",
