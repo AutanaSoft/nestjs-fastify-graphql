@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, User } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 import { HandlerOrmErrorsService, PrismaService } from '@/shared/applications/services';
 import { UserEntity } from '../../domain/entities';
-import { UserRole, UserStatus } from '../../domain/enums/user.enum';
 import { UserRepository } from '../../domain/repository';
 import { UserCreateType, UserUpdateType } from '../../domain/types';
+import { UserMapper } from '../mappers';
 
 @Injectable()
 /**
@@ -49,7 +49,7 @@ export class UserPrismaAdapter implements UserRepository {
         data: createData,
       });
 
-      return this.mapToEntity(created);
+      return UserMapper.toDomain(created);
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         uniqueConstraint: 'User with this email or userName already exists',
@@ -87,7 +87,7 @@ export class UserPrismaAdapter implements UserRepository {
       });
 
       // Mapeo a entidad de dominio
-      return this.mapToEntity(updated);
+      return UserMapper.toDomain(updated);
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         uniqueConstraint: 'User with this email or username already exists',
@@ -111,7 +111,7 @@ export class UserPrismaAdapter implements UserRepository {
       const user = await this.prisma.user.findUnique({
         where: { id },
       });
-      return user ? this.mapToEntity(user) : null;
+      return user ? UserMapper.toDomain(user) : null;
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         notFound: 'User with this ID not found',
@@ -140,8 +140,8 @@ export class UserPrismaAdapter implements UserRepository {
         },
       });
       this.logger.info({ userFound: user }, 'User search completed');
-      this.logger.info({ user: user ? this.mapToEntity(user) : null }, 'User details retrieved');
-      return user ? this.mapToEntity(user) : null;
+      this.logger.info({ user: user ? UserMapper.toDomain(user) : null }, 'User details retrieved');
+      return user ? UserMapper.toDomain(user) : null;
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         notFound: 'User with this email not found',
@@ -164,7 +164,7 @@ export class UserPrismaAdapter implements UserRepository {
           createdAt: 'desc',
         },
       });
-      return users.map((user) => this.mapToEntity(user));
+      return UserMapper.toDomainList(users);
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         notFound: 'User with this criteria not found',
@@ -172,23 +172,5 @@ export class UserPrismaAdapter implements UserRepository {
         unknown: 'An unexpected error occurred while fetching users',
       });
     }
-  }
-
-  /**
-   * Mapea un modelo de Prisma a una entidad de dominio.
-   * @param user Modelo de Prisma User.
-   * @returns Entidad de dominio UserEntity.
-   */
-  private mapToEntity(user: User): UserEntity {
-    const entity = new UserEntity();
-    entity.id = user.id;
-    entity.email = user.email;
-    entity.userName = user.userName;
-    entity.password = user.password;
-    entity.status = user.status as unknown as UserStatus;
-    entity.role = user.role as unknown as UserRole;
-    entity.createdAt = user.createdAt;
-    entity.updatedAt = user.updatedAt;
-    return entity;
   }
 }
