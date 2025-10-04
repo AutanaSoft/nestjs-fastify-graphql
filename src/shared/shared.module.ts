@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { HandlerOrmErrorsService } from './applications/services/handler-orm-errors.service';
+import { HandlerOrmErrorsService, PrismaService } from './applications/services';
 
 @Module({
   imports: [],
-  exports: [HandlerOrmErrorsService],
-  providers: [HandlerOrmErrorsService],
+  exports: [HandlerOrmErrorsService, PrismaService],
+  providers: [HandlerOrmErrorsService, PrismaService],
 })
 export class SharedModule {}
