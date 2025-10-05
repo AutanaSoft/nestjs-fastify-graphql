@@ -108,8 +108,8 @@ export class UserName {
     // Validación de subcadenas prohibidas (incluye coincidencias exactas)
     // Construye una expresión regular que coincida con cualquier nombre prohibido como subcadena (case-insensitive)
     const forbiddenPattern = new RegExp(
-      FORBIDDEN_USER_NAMES.map(name => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'),
-      'i'
+      FORBIDDEN_USER_NAMES.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'),
+      'i',
     );
     const containsForbiddenWord = forbiddenPattern.test(normalizedValue);
 
