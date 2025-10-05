@@ -7,10 +7,10 @@ import { UserEmail, UserName, UserPassword } from '../../domain/value-objects';
 import { CreateUserArgsDto } from '../dto/args';
 
 /**
- * Caso de uso para crear un usuario en el sistema.
+ * Caso de uso para crear un nuevo usuario en el sistema.
  *
- * Orquesta la operación de creación delegando en el repositorio de
- * usuarios y registra el resultado en el logger de la aplicación.
+ * Valida los datos de entrada usando value objects del dominio,
+ * hashea la contraseña del usuario y persiste la entidad en el repositorio.
  *
  * @public
  */
@@ -23,16 +23,17 @@ export class CreateUserUseCase {
   ) {}
 
   /**
-   * Ejecuta la creación de un usuario.
+   * Ejecuta la creación de un nuevo usuario.
    *
-   * @param command Argumentos que contienen los datos de entrada.
-   * @returns La entidad de usuario creada.
-   * @throws ForbiddenUserNameError Si el nombre de usuario está prohibido.
-   * @throws ForbiddenEmailDomainError Si el dominio del email está prohibido.
-   * @throws Error Si la operación de persistencia falla.
-   * @remarks Valida que el nombre de usuario y el dominio del email no estén prohibidos antes de delegar en el repositorio.
+   * @param command - Argumentos que contienen los datos del usuario a crear
+   * @returns La entidad de usuario creada con su ID asignado
+   * @throws {UserAlreadyExistsError} Si el email o nombre de usuario ya existe
+   * @throws {ValidationError} Si los datos del usuario no son válidos
    */
   async execute(command: CreateUserArgsDto): Promise<UserEntity> {
+    this.logger.debug({ command }, 'Executing CreateUserUseCase');
+
+    // Validar si el usuario ya existe por email o nombre de usuario
     const userName = new UserName(command.data.userName);
     const userEmail = new UserEmail(command.data.email);
     const userPassword = new UserPassword(command.data.password);
@@ -43,7 +44,8 @@ export class CreateUserUseCase {
       email: userEmail.getValue(),
       password: hashedPassword,
     });
-    this.logger.info(`User created with ID: ${user.id}`);
+
+    this.logger.info({ userId: user.id }, 'User created successfully');
     return user;
   }
 }

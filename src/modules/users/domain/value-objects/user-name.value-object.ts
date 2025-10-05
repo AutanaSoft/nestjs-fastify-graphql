@@ -5,7 +5,8 @@ import { ForbiddenUserNameError, UserCreationError } from '../errors';
  * Value Object que encapsula y valida un nombre de usuario.
  *
  * Garantiza que el nombre cumpla con reglas de formato (longitud, caracteres permitidos,
- * estructura) y reglas de negocio (no estar en lista de nombres prohibidos).
+ * estructura) y reglas de negocio (no estar en lista de nombres prohibidos ni contener
+ * palabras prohibidas como subcadenas).
  * El valor se normaliza automáticamente eliminando espacios al inicio y final.
  *
  * @public
@@ -14,7 +15,8 @@ import { ForbiddenUserNameError, UserCreationError } from '../errors';
  * - Longitud entre 3 y 20 caracteres
  * - Iniciar con una letra (A-Z o a-z)
  * - Contener solo letras, números, puntos (.), guiones bajos (_) o guiones (-)
- * - No estar en la lista de nombres prohibidos
+ * - No estar en la lista de nombres prohibidos (coincidencia exacta)
+ * - No contener palabras prohibidas como subcadenas (ej: 'admin123' contiene 'admin')
  */
 export class UserName {
   private readonly MIN_LENGTH = 3;
@@ -85,17 +87,30 @@ export class UserName {
   /**
    * Valida las reglas de negocio del nombre de usuario.
    *
-   * Verifica que el nombre no esté en la lista de nombres prohibidos definida
-   * en las constantes del dominio. La validación se realiza de forma case-insensitive.
+   * Verifica que el nombre no contenga palabras prohibidas como subcadenas.
+   * La validación se realiza de forma case-insensitive y cubre tanto coincidencias
+   * exactas como subcadenas.
    *
    * @param value Valor a validar.
-   * @throws ForbiddenUserNameError Si el nombre está en la lista de nombres prohibidos.
+   * @throws ForbiddenUserNameError Si el nombre contiene alguna palabra prohibida.
    * @private
    * @see FORBIDDEN_USER_NAMES
+   * @remarks
+   * Ejemplos de nombres bloqueados:
+   * - 'admin' (coincidencia exacta)
+   * - 'superAdmin' (contiene 'admin')
+   * - 'admin123' (contiene 'admin')
+   * - 'root_user' (contiene 'root')
    */
   private validateBusinessRules(value: string): void {
     const normalizedValue = value.toLowerCase().trim();
-    if (FORBIDDEN_USER_NAMES.includes(normalizedValue)) {
+
+    // Validación de subcadenas prohibidas (incluye coincidencias exactas)
+    const containsForbiddenWord = FORBIDDEN_USER_NAMES.some((forbiddenName) =>
+      normalizedValue.includes(forbiddenName),
+    );
+
+    if (containsForbiddenWord) {
       throw new ForbiddenUserNameError(value);
     }
   }
