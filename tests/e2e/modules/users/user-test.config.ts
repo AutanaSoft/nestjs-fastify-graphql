@@ -21,8 +21,8 @@ type CreateUserResponse = {
  */
 export const testUserVariables = {
   input: {
-    userName: 'testUser',
-    email: 'testUser@example.com',
+    userName: 'JhonDoe',
+    email: 'JhonDoe@example.com',
     password: 'StrongPwd1!',
   },
 };
