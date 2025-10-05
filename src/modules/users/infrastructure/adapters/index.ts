@@ -1,1 +1,1 @@
-export * from './user-type-orm.adapter';
+export * from './user-prisma.adapter';

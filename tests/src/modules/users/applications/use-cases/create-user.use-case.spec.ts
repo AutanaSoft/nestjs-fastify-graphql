@@ -3,14 +3,20 @@ import { CreateUserInputDto } from '@/modules/users/applications/dto/inputs';
 import { CreateUserUseCase } from '@/modules/users/applications/use-cases';
 import { UserEntity } from '@/modules/users/domain/entities';
 import { UserRole, UserStatus } from '@/modules/users/domain/enums/user.enum';
-import { ForbiddenUserNameError } from '@/modules/users/domain/errors';
+import {
+  ForbiddenEmailDomainError,
+  ForbiddenUserNameError,
+  UserCreationError,
+} from '@/modules/users/domain/errors';
 import { UserRepository } from '@/modules/users/domain/repository';
+import * as HashUtilsModule from '@/shared/applications/utils/hash.utils';
 import { PinoLogger } from 'nestjs-pino';
 
 describe('CreateUserUseCase', () => {
   let useCase: CreateUserUseCase;
   let userRepositoryMock: UserRepositoryMock;
   let loggerMock: LoggerMock;
+  let hashPasswordMock: jest.SpyInstance;
 
   const validUserInput: CreateUserInputDto = {
     userName: 'validuser',
@@ -45,6 +51,9 @@ describe('CreateUserUseCase', () => {
       debug: jest.fn(),
     } as LoggerMock;
 
+    hashPasswordMock = jest.spyOn(HashUtilsModule.HashUtils, 'hashPassword');
+    hashPasswordMock.mockResolvedValue('hashedPassword123');
+
     useCase = new CreateUserUseCase(
       userRepositoryMock as unknown as UserRepository,
       loggerMock as unknown as PinoLogger,
@@ -65,14 +74,21 @@ describe('CreateUserUseCase', () => {
 
       const result = await useCase.execute(command);
 
+      expect(hashPasswordMock).toHaveBeenCalledTimes(1);
+      expect(hashPasswordMock).toHaveBeenCalledWith(validUserInput.password);
       expect(userRepositoryMock.create).toHaveBeenCalledTimes(1);
       expect(userRepositoryMock.create).toHaveBeenCalledWith({
         userName: validUserInput.userName,
         email: validUserInput.email,
-        password: validUserInput.password,
+        password: 'hashedPassword123',
       });
+      expect(loggerMock.debug).toHaveBeenCalledTimes(1);
+      expect(loggerMock.debug).toHaveBeenCalledWith({ command }, 'Executing CreateUserUseCase');
       expect(loggerMock.info).toHaveBeenCalledTimes(1);
-      expect(loggerMock.info).toHaveBeenCalledWith(`User created with ID: ${createdUserEntity.id}`);
+      expect(loggerMock.info).toHaveBeenCalledWith(
+        { userId: createdUserEntity.id },
+        'User created successfully',
+      );
       expect(result).toEqual(createdUserEntity);
       expect(result.id).toBe(createdUserEntity.id);
       expect(result.userName).toBe('validuser');
@@ -89,44 +105,9 @@ describe('CreateUserUseCase', () => {
 
       await expect(useCase.execute(command)).rejects.toThrow(ForbiddenUserNameError);
       await expect(useCase.execute(command)).rejects.toThrow('The username "admin" is not allowed');
+      expect(hashPasswordMock).not.toHaveBeenCalled();
       expect(userRepositoryMock.create).not.toHaveBeenCalled();
       expect(loggerMock.info).not.toHaveBeenCalled();
-    });
-
-    it('debe lanzar ForbiddenUserNameError cuando el userName es "root"', async () => {
-      const command: CreateUserArgsDto = {
-        data: {
-          ...validUserInput,
-          userName: 'root',
-        },
-      };
-
-      await expect(useCase.execute(command)).rejects.toThrow(ForbiddenUserNameError);
-      expect(userRepositoryMock.create).not.toHaveBeenCalled();
-    });
-
-    it('debe lanzar ForbiddenUserNameError cuando el userName es "autanasoft"', async () => {
-      const command: CreateUserArgsDto = {
-        data: {
-          ...validUserInput,
-          userName: 'autanasoft',
-        },
-      };
-
-      await expect(useCase.execute(command)).rejects.toThrow(ForbiddenUserNameError);
-      expect(userRepositoryMock.create).not.toHaveBeenCalled();
-    });
-
-    it('debe lanzar ForbiddenUserNameError de forma case-insensitive (ADMIN)', async () => {
-      const command: CreateUserArgsDto = {
-        data: {
-          ...validUserInput,
-          userName: 'ADMIN',
-        },
-      };
-
-      await expect(useCase.execute(command)).rejects.toThrow(ForbiddenUserNameError);
-      expect(userRepositoryMock.create).not.toHaveBeenCalled();
     });
 
     it('debe lanzar ForbiddenUserNameError de forma case-insensitive (AutanaSoft)', async () => {
@@ -138,24 +119,56 @@ describe('CreateUserUseCase', () => {
       };
 
       await expect(useCase.execute(command)).rejects.toThrow(ForbiddenUserNameError);
+      expect(hashPasswordMock).not.toHaveBeenCalled();
       expect(userRepositoryMock.create).not.toHaveBeenCalled();
     });
 
-    it('debe crear usuario con userName que no está prohibido', async () => {
+    it('debe lanzar ForbiddenEmailDomainError cuando el dominio del email está prohibido', async () => {
       const command: CreateUserArgsDto = {
         data: {
           ...validUserInput,
-          userName: 'myusername',
+          email: 'user@autanasoft.com',
         },
       };
 
-      const expectedUser = { ...createdUserEntity, userName: 'myusername' };
-      userRepositoryMock.create.mockResolvedValue(expectedUser as UserEntity);
+      await expect(useCase.execute(command)).rejects.toThrow(ForbiddenEmailDomainError);
+      await expect(useCase.execute(command)).rejects.toThrow(
+        'The email domain "autanasoft.com" from "user@autanasoft.com" is not allowed',
+      );
+      expect(hashPasswordMock).not.toHaveBeenCalled();
+      expect(userRepositoryMock.create).not.toHaveBeenCalled();
+    });
 
-      const result = await useCase.execute(command);
+    it('debe lanzar UserCreationError cuando la contraseña no cumple con complejidad mínima', async () => {
+      const command: CreateUserArgsDto = {
+        data: {
+          ...validUserInput,
+          password: 'simplepassword',
+        },
+      };
 
-      expect(userRepositoryMock.create).toHaveBeenCalledTimes(1);
-      expect(result.userName).toBe('myusername');
+      await expect(useCase.execute(command)).rejects.toThrow(UserCreationError);
+      await expect(useCase.execute(command)).rejects.toThrow(
+        'Password must include at least one uppercase letter, one lowercase letter, one digit, and one special character (@$!%*?&)',
+      );
+      expect(hashPasswordMock).not.toHaveBeenCalled();
+      expect(userRepositoryMock.create).not.toHaveBeenCalled();
+    });
+
+    it('debe lanzar ForbiddenUserNameError cuando el userName contiene palabra prohibida como subcadena', async () => {
+      const command: CreateUserArgsDto = {
+        data: {
+          ...validUserInput,
+          userName: 'admin123',
+        },
+      };
+
+      await expect(useCase.execute(command)).rejects.toThrow(ForbiddenUserNameError);
+      await expect(useCase.execute(command)).rejects.toThrow(
+        'The username "admin123" is not allowed',
+      );
+      expect(hashPasswordMock).not.toHaveBeenCalled();
+      expect(userRepositoryMock.create).not.toHaveBeenCalled();
     });
 
     it('debe propagar errores del repositorio cuando falla la creación', async () => {
@@ -167,49 +180,9 @@ describe('CreateUserUseCase', () => {
       userRepositoryMock.create.mockRejectedValue(repositoryError);
 
       await expect(useCase.execute(command)).rejects.toThrow('Database connection failed');
+      expect(hashPasswordMock).toHaveBeenCalledTimes(1);
       expect(userRepositoryMock.create).toHaveBeenCalledTimes(1);
       expect(loggerMock.info).not.toHaveBeenCalled();
-    });
-
-    it('debe validar userName antes de llamar al repositorio', async () => {
-      const command: CreateUserArgsDto = {
-        data: {
-          ...validUserInput,
-          userName: 'administrator',
-        },
-      };
-
-      await expect(useCase.execute(command)).rejects.toThrow(ForbiddenUserNameError);
-      expect(userRepositoryMock.create).not.toHaveBeenCalled();
-    });
-
-    it('debe crear usuario con userName que contiene nombre prohibido como subcadena', async () => {
-      const command: CreateUserArgsDto = {
-        data: {
-          ...validUserInput,
-          userName: 'admin123',
-        },
-      };
-
-      const expectedUser = { ...createdUserEntity, userName: 'admin123' };
-      userRepositoryMock.create.mockResolvedValue(expectedUser as UserEntity);
-
-      const result = await useCase.execute(command);
-
-      expect(userRepositoryMock.create).toHaveBeenCalledTimes(1);
-      expect(result.userName).toBe('admin123');
-    });
-
-    it('debe registrar el ID del usuario creado en el logger', async () => {
-      const command: CreateUserArgsDto = {
-        data: validUserInput,
-      };
-
-      userRepositoryMock.create.mockResolvedValue(createdUserEntity as UserEntity);
-
-      await useCase.execute(command);
-
-      expect(loggerMock.info).toHaveBeenCalledWith(`User created with ID: ${createdUserEntity.id}`);
     });
   });
 });

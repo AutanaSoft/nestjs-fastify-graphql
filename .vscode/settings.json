@@ -4,7 +4,11 @@
     "commitlint",
     "correlacionar",
     "nestjs",
+    "openssl",
     "parseados",
+    "postgres",
+    "postgresql",
+    "rhel",
     "swcrc",
     "tipada",
     "tipado"

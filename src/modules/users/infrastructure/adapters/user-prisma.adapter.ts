@@ -1,25 +1,24 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
+import { Prisma } from '@prisma/client';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { ILike, Repository } from 'typeorm';
 
-import { HandlerOrmErrorsService } from '@/shared/applications/services/handler-orm-errors.service';
+import { HandlerOrmErrorsService, PrismaService } from '@/shared/applications/services';
 import { UserEntity } from '../../domain/entities';
 import { UserRepository } from '../../domain/repository';
 import { UserCreateType, UserUpdateType } from '../../domain/types';
+import { UserMapper } from '../mappers';
 
 @Injectable()
 /**
- * Implementa el repositorio de usuarios utilizando TypeORM como adaptador.
+ * Implementa el repositorio de usuarios utilizando Prisma ORM como adaptador.
  * @public
  * @see UserRepository
  */
-export class UserTypeOrmAdapter implements UserRepository {
+export class UserPrismaAdapter implements UserRepository {
   constructor(
-    @InjectPinoLogger(UserTypeOrmAdapter.name)
+    @InjectPinoLogger(UserPrismaAdapter.name)
     private readonly logger: PinoLogger,
-    @InjectRepository(UserEntity)
-    private userRepository: Repository<UserEntity>,
+    private readonly prisma: PrismaService,
     private readonly handlerOrmErrorsService: HandlerOrmErrorsService,
   ) {}
 
@@ -28,12 +27,29 @@ export class UserTypeOrmAdapter implements UserRepository {
    * @param user Datos de creación del usuario.
    * @returns Promesa con la entidad almacenada.
    * @throws DataBaseError Cuando ocurre un fallo de persistencia.
+   * @throws ConflictError Cuando ya existe un usuario con el mismo email o userName.
    */
   async create(user: UserCreateType): Promise<UserEntity> {
     try {
       this.logger.info({ createUser: user }, 'Creating new user...');
-      const toPersist = this.userRepository.create(user);
-      return await this.userRepository.save(toPersist);
+
+      // Mapeo de datos para Prisma
+      const createData: Prisma.UserCreateInput = {
+        email: user.email,
+        userName: user.userName,
+        password: user.password,
+      };
+
+      // Mapeo de enums si están definidos
+      if (user.status) createData.status = user.status;
+      if (user.role) createData.role = user.role;
+
+      // Persistencia con Prisma
+      const created = await this.prisma.user.create({
+        data: createData,
+      });
+
+      return UserMapper.toDomain(created);
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         uniqueConstraint: 'User with this email or userName already exists',
@@ -46,16 +62,32 @@ export class UserTypeOrmAdapter implements UserRepository {
 
   /**
    * Actualiza los datos de un usuario existente identificado por su id.
-   * @param id Identificador del usuario a modificar.
-   * @param user Datos parciales para actualizar al usuario.
+   * @param params Parámetros de actualización con id y datos parciales.
    * @returns Indicador de actualización exitosa.
    * @throws DataBaseError Cuando ocurre un fallo de persistencia.
+   * @throws ConflictError Cuando el email o userName ya están en uso.
    */
-  async update(params: UserUpdateType): Promise<boolean> {
+  async update(params: UserUpdateType): Promise<UserEntity> {
     try {
       this.logger.info({ updateUser: params }, 'Updating user...');
-      const result = await this.userRepository.update(params.id, params.data);
-      return !!result.affected;
+      const updateData: Prisma.UserUpdateInput = {};
+      const { id, data: userData } = params;
+
+      // Mapeo de datos a actualizar
+      if (userData.email) updateData.email = userData.email;
+      if (userData.userName) updateData.userName = userData.userName;
+      if (userData.password) updateData.password = userData.password;
+      if (userData.status) updateData.status = userData.status;
+      if (userData.role) updateData.role = userData.role;
+
+      // Actualización con Prisma
+      const updated = await this.prisma.user.update({
+        where: { id },
+        data: updateData,
+      });
+
+      // Mapeo a entidad de dominio
+      return UserMapper.toDomain(updated);
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         uniqueConstraint: 'User with this email or username already exists',
@@ -76,7 +108,10 @@ export class UserTypeOrmAdapter implements UserRepository {
   async findById(id: string): Promise<UserEntity | null> {
     try {
       this.logger.info({ findUserById: id }, 'Finding user by ID...');
-      return await this.userRepository.findOne({ where: { id } });
+      const user = await this.prisma.user.findUnique({
+        where: { id },
+      });
+      return user ? UserMapper.toDomain(user) : null;
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         notFound: 'User with this ID not found',
@@ -88,16 +123,27 @@ export class UserTypeOrmAdapter implements UserRepository {
 
   /**
    * Recupera un usuario a partir de su correo electrónico.
-   *
    * @param email Correo electrónico del usuario.
    * @returns Promesa con la entidad encontrada o null.
    * @throws DataBaseError Cuando ocurre un fallo al consultar datos.
-   * @remarks La búsqueda se realiza de forma case-insensitive usando el operador ILIKE de PostgreSQL.
+   * @remarks La búsqueda se realiza de forma case-insensitive usando el modo insensitive de Prisma.
    */
   async findByEmail(email: string): Promise<UserEntity | null> {
     try {
       this.logger.info({ findUserByEmail: email }, 'Finding user by email...');
-      return await this.userRepository.findOne({ where: { email: ILike(email) } });
+      const user = await this.prisma.user.findFirst({
+        where: {
+          email: {
+            equals: email,
+            mode: 'insensitive',
+          },
+        },
+      });
+      this.logger.info(
+        { user: user ? UserMapper.toDomain(user) : null },
+        'User search completed'
+      );
+      return user ? UserMapper.toDomain(user) : null;
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         notFound: 'User with this email not found',
@@ -115,7 +161,12 @@ export class UserTypeOrmAdapter implements UserRepository {
   async findAll(): Promise<UserEntity[]> {
     try {
       this.logger.info('Finding all users...');
-      return await this.userRepository.find();
+      const users = await this.prisma.user.findMany({
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+      return UserMapper.toDomainList(users);
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         notFound: 'User with this criteria not found',

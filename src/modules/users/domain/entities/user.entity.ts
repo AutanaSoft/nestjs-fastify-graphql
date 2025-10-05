@@ -1,54 +1,51 @@
-import { HashUtils } from '@shared/applications/utils/hash.utils';
-import {
-  BeforeInsert,
-  BeforeUpdate,
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
 import { UserRole, UserStatus } from '../enums/user.enum';
 
-@Entity('users')
+/**
+ * Datos necesarios para reconstruir una entidad User desde persistencia.
+ */
+export type UserEntityData = {
+  readonly id: string;
+  readonly email: string;
+  readonly userName: string;
+  readonly password: string;
+  readonly status: UserStatus;
+  readonly role: UserRole;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+};
+
+/**
+ * Entidad de dominio que representa un usuario del sistema.
+ * @public
+ */
 export class UserEntity {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  readonly id: string;
+  readonly email: string;
+  readonly userName: string;
+  readonly password: string;
+  readonly status: UserStatus;
+  readonly role: UserRole;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
 
-  @Column({ length: 64 })
-  @Index({ unique: true })
-  email: string;
-
-  @Column({ name: 'user_name', length: 20 })
-  @Index({ unique: true })
-  userName: string;
-
-  @Column({ length: 64 })
-  password: string;
-
-  @Column({ type: 'enum', enum: UserStatus, default: UserStatus.REGISTERED })
-  status: UserStatus;
-
-  @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
-  role: UserRole;
-
-  @Index()
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
-
-  @BeforeInsert()
-  @BeforeUpdate()
-  async hashPassword(): Promise<void> {
-    if (this.password) {
-      this.password = await HashUtils.hashPassword(this.password);
-    }
+  private constructor(data: UserEntityData) {
+    this.id = data.id;
+    this.email = data.email;
+    this.userName = data.userName;
+    this.password = data.password;
+    this.status = data.status;
+    this.role = data.role;
+    this.createdAt = data.createdAt;
+    this.updatedAt = data.updatedAt;
   }
 
-  async validatePassword(password: string): Promise<boolean> {
-    return await HashUtils.comparePassword(password, this.password);
+  /**
+   * Crea una instancia de UserEntity a partir de datos de persistencia.
+   * @param data Datos del usuario provenientes de la base de datos.
+   * @returns Nueva instancia de UserEntity.
+   * @remarks Este método es usado por los adaptadores de infraestructura para reconstruir entidades.
+   */
+  static fromPersistence(data: UserEntityData): UserEntity {
+    return new UserEntity(data);
   }
 }

@@ -1,10 +1,11 @@
+import { HashUtils } from '@/shared/applications/utils';
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { UserEntity } from '../../domain/entities';
-import { UserNotFoundError, UserUpdateFailedError } from '../../domain/errors';
+import { UserNotFoundError } from '../../domain/errors';
 import { USER_REPOSITORY, UserRepository } from '../../domain/repository';
-import { UserName } from '../../domain/value-objects';
-import { UpdateUserArgsDto } from '../dto/args';
+import { UserUpdateType } from '../../domain/types';
+import { UserEmail, UserName, UserPassword } from '../../domain/value-objects';
 
 /**
  * Caso de uso para actualizar un usuario existente en el sistema.
@@ -33,46 +34,37 @@ export class UpdateUserUseCase {
    * @throws UserUpdateFailedError Si la operación de actualización falla en el repositorio.
    * @remarks Valida la existencia del usuario antes de aplicar la actualización.
    */
-  async execute(command: UpdateUserArgsDto): Promise<UserEntity> {
-    const existingUser = await this.userRepository.findById(command.id);
+  async execute(command: UserUpdateType): Promise<UserEntity> {
+    const { id, data } = command;
 
-    if (!existingUser) {
-      throw new UserNotFoundError(`User with ID ${command.id} not found`);
+    const existingUser = await this.userRepository.findById(id);
+
+    if (!existingUser) throw new UserNotFoundError(`User with ID ${id} not found`);
+
+    // Validamos el userName si viene en los datos a actualizar
+    if (data.userName) {
+      const userName = new UserName(data.userName);
+      data.userName = userName.getValue();
     }
 
-    const updateData: Record<string, unknown> = {};
-
-    if (command.data.userName) {
-      const userName = new UserName(command.data.userName);
-      updateData.userName = userName.getValue();
+    // Validamos el email si viene en los datos a actualizar
+    if (data.email) {
+      const userEmail = new UserEmail(data.email);
+      data.email = userEmail.getValue();
     }
 
-    if (command.data.status) {
-      updateData.status = command.data.status;
+    // Validamos el password si viene en los datos a actualizar
+    if (data.password) {
+      const userPassword = new UserPassword(data.password);
+      data.password = await HashUtils.hashPassword(userPassword.getValue());
     }
 
-    if (command.data.role) {
-      updateData.role = command.data.role;
-    }
-
+    // Persistimos la actualización
     const updated = await this.userRepository.update({
-      id: command.id,
-      data: updateData,
+      id,
+      data,
     });
 
-    if (!updated) {
-      this.logger.warn(`Failed to update user with ID: ${command.id}`);
-      throw new UserUpdateFailedError(command.id);
-    }
-
-    this.logger.info(`User updated with ID: ${command.id}`);
-
-    const updatedUser = await this.userRepository.findById(command.id);
-
-    if (!updatedUser) {
-      throw new UserNotFoundError(`User with ID ${command.id} not found after update`);
-    }
-
-    return updatedUser;
+    return updated;
   }
 }

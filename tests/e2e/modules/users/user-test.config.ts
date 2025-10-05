@@ -1,8 +1,7 @@
-import { UserEntity } from '@/modules/users/domain/entities';
+import { PrismaService } from '@/shared/applications/services';
 import { GraphQLResponse } from '@/shared/applications/types';
 import { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
-import { DataSource, ILike } from 'typeorm';
 
 /**
  * Tipo para la respuesta de creación de usuario en GraphQL.
@@ -22,8 +21,8 @@ type CreateUserResponse = {
  */
 export const testUserVariables = {
   input: {
-    userName: 'testUser',
-    email: 'testUser@example.com',
+    userName: 'JhonDoe',
+    email: 'JhonDoe@example.com',
     password: 'StrongPwd1!',
   },
 };
@@ -90,7 +89,14 @@ export async function setupTestUser(app: NestFastifyApplication): Promise<string
  * @param app Instancia de la aplicación NestJS/Fastify
  */
 export async function cleanupTestUser(app: NestFastifyApplication): Promise<void> {
-  const dataSource = app.get(DataSource);
-  const repository = dataSource.getRepository(UserEntity);
-  await repository.delete({ email: ILike(testUserVariables.input.email) });
+  const dataSource = app.get(PrismaService);
+  await dataSource.user.deleteMany({
+    where: {
+      email: {
+        contains: 'example.com',
+        mode: 'insensitive',
+      },
+    },
+  });
+  // const repository = dataSource.getRepository(UserEntity); --- IGNORE ---
 }

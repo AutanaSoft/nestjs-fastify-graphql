@@ -14,13 +14,8 @@ export {
 } from './logger.config';
 
 export {
-  default as databaseConfig,
-  type DatabaseConfig,
-  createTypeOrmModuleOptions,
-} from './database.config';
-export { default as validationPipeConfig } from './validation-pipe.config';
-export {
+  createThrottlerModuleOptions,
   default as throttlerConfig,
   type ThrottlerConfig,
-  createThrottlerModuleOptions,
 } from './throttler.config';
+export { default as validationPipeConfig } from './validation-pipe.config';

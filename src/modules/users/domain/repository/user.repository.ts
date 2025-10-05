@@ -30,7 +30,7 @@ export abstract class UserRepository {
    * @throws Error Implementations may throw when persistence constraints are violated (e.g., unique email)
    * @remarks Partial updates are supported; only provided fields will be updated
    */
-  abstract update(params: UserUpdateType): Promise<boolean>;
+  abstract update(params: UserUpdateType): Promise<UserEntity>;
 
   /**
    * Retrieves a User by its identifier.

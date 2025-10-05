@@ -1,24 +1,22 @@
 import { SharedModule } from '@/shared/shared.module';
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   CreateUserUseCase,
   FindUserByEmailUseCase,
   FindUserByIdUseCase,
   UpdateUserUseCase,
 } from './applications/use-cases';
-import { UserEntity } from './domain/entities';
 import { USER_REPOSITORY } from './domain/repository';
-import { UserTypeOrmAdapter } from './infrastructure/adapters';
+import { UserPrismaAdapter } from './infrastructure/adapters';
 import { UserResolvers } from './infrastructure/resolvers';
 
 @Module({
-  imports: [SharedModule, TypeOrmModule.forFeature([UserEntity])],
-  exports: [TypeOrmModule],
+  imports: [SharedModule],
+  exports: [],
   providers: [
     {
       provide: USER_REPOSITORY,
-      useClass: UserTypeOrmAdapter,
+      useClass: UserPrismaAdapter,
     },
     CreateUserUseCase,
     FindUserByEmailUseCase,
