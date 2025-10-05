@@ -6,7 +6,6 @@ import { HandlerOrmErrorsService, PrismaService } from '@/shared/applications/se
 import { UserEntity } from '../../domain/entities';
 import { UserRepository } from '../../domain/repository';
 import { UserCreateType, UserUpdateType } from '../../domain/types';
-import { UserMapper } from '../mappers';
 
 @Injectable()
 /**
@@ -50,7 +49,7 @@ export class UserPrismaAdapter implements UserRepository {
       });
 
       this.logger.info({ createdUser: created }, 'User created successfully');
-      return UserMapper.toDomain(created);
+      return UserEntity.toDomain(created);
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         uniqueConstraint: 'User with this email or userName already exists',
@@ -89,7 +88,7 @@ export class UserPrismaAdapter implements UserRepository {
 
       // Mapeo a entidad de dominio
       this.logger.info({ updatedUser: updated }, 'User updated successfully');
-      return UserMapper.toDomain(updated);
+      return UserEntity.toDomain(updated);
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         uniqueConstraint: 'User with this email or username already exists',
@@ -112,7 +111,7 @@ export class UserPrismaAdapter implements UserRepository {
       const user = await this.prisma.user.findUnique({
         where: { id },
       });
-      return user ? UserMapper.toDomain(user) : null;
+      return user ? UserEntity.toDomain(user) : null;
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         notFound: 'User with this ID not found',
@@ -140,7 +139,7 @@ export class UserPrismaAdapter implements UserRepository {
         },
       });
 
-      return user ? UserMapper.toDomain(user) : null;
+      return user ? UserEntity.toDomain(user) : null;
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         notFound: 'User with this email not found',
@@ -162,7 +161,7 @@ export class UserPrismaAdapter implements UserRepository {
           createdAt: 'desc',
         },
       });
-      return UserMapper.toDomainList(users);
+      return UserEntity.toDomainList(users);
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         notFound: 'User with this criteria not found',
