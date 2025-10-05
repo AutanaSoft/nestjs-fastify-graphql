@@ -133,6 +133,14 @@ The following types are accepted by @commitlint/config-conventional:
 - Keep it concise; do not end with a period
 - Use imperative mood (e.g., “add”, “fix”, “update”)
 
+### Commit scope rules
+
+- The commit message must describe ONLY the changes that are staged (ready to commit)
+- Do not reference files or changes that are not included in the current staged changes
+- Keep commits atomic and focused on a single logical change
+- If you have multiple unrelated changes, split them into separate commits
+- Review staged changes before writing the commit message to ensure accuracy
+
 ## Body and footer
 
 Enforced limits:
