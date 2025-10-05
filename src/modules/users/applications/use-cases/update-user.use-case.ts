@@ -5,7 +5,7 @@ import { UserEntity } from '../../domain/entities';
 import { UserNotFoundError } from '../../domain/errors';
 import { USER_REPOSITORY, UserRepository } from '../../domain/repository';
 import { UserUpdateType } from '../../domain/types';
-import { UserName } from '../../domain/value-objects';
+import { UserEmail, UserName, UserPassword } from '../../domain/value-objects';
 
 /**
  * Caso de uso para actualizar un usuario existente en el sistema.
@@ -49,13 +49,13 @@ export class UpdateUserUseCase {
 
     // Validamos el email si viene en los datos a actualizar
     if (data.email) {
-      const userEmail = new UserName(data.email);
+      const userEmail = new UserEmail(data.email);
       data.email = userEmail.getValue();
     }
 
     // Validamos el password si viene en los datos a actualizar
     if (data.password) {
-      const userPassword = new UserName(data.password);
+      const userPassword = new UserPassword(data.password);
       data.password = await HashUtils.hashPassword(userPassword.getValue());
     }
 
