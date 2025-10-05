@@ -31,7 +31,7 @@ export class CreateUserUseCase {
    * @throws {ValidationError} Si los datos del usuario no son válidos
    */
   async execute(command: CreateUserArgsDto): Promise<UserEntity> {
-    this.logger.debug({ command }, 'Executing CreateUserUseCase');
+    this.logger.info({ command }, 'Executing CreateUserUseCase');
 
     // Validar si el usuario ya existe por email o nombre de usuario
     const userName = new UserName(command.data.userName);

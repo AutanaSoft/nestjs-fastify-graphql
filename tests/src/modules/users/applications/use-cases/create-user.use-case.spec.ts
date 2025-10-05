@@ -9,6 +9,7 @@ import {
   UserCreationError,
 } from '@/modules/users/domain/errors';
 import { UserRepository } from '@/modules/users/domain/repository';
+import { UserEmail, UserName, UserPassword } from '@/modules/users/domain/value-objects';
 import * as HashUtilsModule from '@/shared/applications/utils/hash.utils';
 import { PinoLogger } from 'nestjs-pino';
 
@@ -18,16 +19,21 @@ describe('CreateUserUseCase', () => {
   let loggerMock: LoggerMock;
   let hashPasswordMock: jest.SpyInstance;
 
+  // Value objects para testing
+  let validUserName: UserName;
+  let validUserEmail: UserEmail;
+  let validUserPassword: UserPassword;
+
   const validUserInput: CreateUserInputDto = {
-    userName: 'validuser',
-    email: 'valid@example.com',
+    userName: 'validUser',
+    email: 'validUser@example.com',
     password: 'ValidPass123!',
   };
 
   const createdUserEntity: Partial<UserEntity> = {
     id: '123e4567-e89b-12d3-a456-426614174000',
-    userName: 'validuser',
-    email: 'valid@example.com',
+    userName: 'validUser',
+    email: 'validuser@example.com',
     password: 'hashedPassword123',
     status: UserStatus.REGISTERED,
     role: UserRole.USER,
@@ -36,6 +42,11 @@ describe('CreateUserUseCase', () => {
   };
 
   beforeEach(() => {
+    // Inicializar value objects
+    validUserName = new UserName(validUserInput.userName);
+    validUserEmail = new UserEmail(validUserInput.email);
+    validUserPassword = new UserPassword(validUserInput.password);
+
     userRepositoryMock = {
       create: jest.fn(),
       update: jest.fn(),
@@ -71,28 +82,31 @@ describe('CreateUserUseCase', () => {
       };
 
       userRepositoryMock.create.mockResolvedValue(createdUserEntity as UserEntity);
-
       const result = await useCase.execute(command);
 
+      expect(loggerMock.info).toHaveBeenCalledTimes(2);
+      expect(loggerMock.info).toHaveBeenNthCalledWith(
+        1,
+        { command },
+        'Executing CreateUserUseCase',
+      );
+
       expect(hashPasswordMock).toHaveBeenCalledTimes(1);
-      expect(hashPasswordMock).toHaveBeenCalledWith(validUserInput.password);
+      expect(hashPasswordMock).toHaveBeenCalledWith(validUserPassword.getValue());
+
       expect(userRepositoryMock.create).toHaveBeenCalledTimes(1);
       expect(userRepositoryMock.create).toHaveBeenCalledWith({
-        userName: validUserInput.userName,
-        email: validUserInput.email,
+        userName: validUserName.getValue(),
+        email: validUserEmail.getValue(),
         password: 'hashedPassword123',
       });
-      expect(loggerMock.debug).toHaveBeenCalledTimes(1);
-      expect(loggerMock.debug).toHaveBeenCalledWith({ command }, 'Executing CreateUserUseCase');
-      expect(loggerMock.info).toHaveBeenCalledTimes(1);
-      expect(loggerMock.info).toHaveBeenCalledWith(
+
+      expect(loggerMock.info).toHaveBeenNthCalledWith(
+        2,
         { userId: createdUserEntity.id },
         'User created successfully',
       );
       expect(result).toEqual(createdUserEntity);
-      expect(result.id).toBe(createdUserEntity.id);
-      expect(result.userName).toBe('validuser');
-      expect(result.email).toBe('valid@example.com');
     });
 
     it('debe lanzar ForbiddenUserNameError cuando el userName es "admin"', async () => {
@@ -107,7 +121,6 @@ describe('CreateUserUseCase', () => {
       await expect(useCase.execute(command)).rejects.toThrow('The username "admin" is not allowed');
       expect(hashPasswordMock).not.toHaveBeenCalled();
       expect(userRepositoryMock.create).not.toHaveBeenCalled();
-      expect(loggerMock.info).not.toHaveBeenCalled();
     });
 
     it('debe lanzar ForbiddenUserNameError de forma case-insensitive (AutanaSoft)', async () => {
@@ -182,7 +195,8 @@ describe('CreateUserUseCase', () => {
       await expect(useCase.execute(command)).rejects.toThrow('Database connection failed');
       expect(hashPasswordMock).toHaveBeenCalledTimes(1);
       expect(userRepositoryMock.create).toHaveBeenCalledTimes(1);
-      expect(loggerMock.info).not.toHaveBeenCalled();
+      expect(loggerMock.info).toHaveBeenCalledTimes(1);
+      expect(loggerMock.info).toHaveBeenCalledWith({ command }, 'Executing CreateUserUseCase');
     });
   });
 });

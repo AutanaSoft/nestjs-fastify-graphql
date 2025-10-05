@@ -34,10 +34,8 @@ export class FindUserByEmailUseCase {
     const userEmail = new UserEmail(query.email);
     const user = await this.userRepository.findByEmail(userEmail.getValue());
     if (!user) {
-      this.logger.warn(`User not found with email: ${userEmail.getValue()}`);
       throw new UserNotFoundError(`User not found with email: ${userEmail.getValue()}`);
     }
-    this.logger.info(`User found with email: ${user.email}`);
     return user;
   }
 }

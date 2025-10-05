@@ -6,7 +6,6 @@ import { HandlerOrmErrorsService, PrismaService } from '@/shared/applications/se
 import { UserEntity } from '../../domain/entities';
 import { UserRepository } from '../../domain/repository';
 import { UserCreateType, UserUpdateType } from '../../domain/types';
-import { UserMapper } from '../mappers';
 
 @Injectable()
 /**
@@ -49,7 +48,8 @@ export class UserPrismaAdapter implements UserRepository {
         data: createData,
       });
 
-      return UserMapper.toDomain(created);
+      this.logger.info({ createdUser: created }, 'User created successfully');
+      return UserEntity.toDomain(created);
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         uniqueConstraint: 'User with this email or userName already exists',
@@ -87,7 +87,8 @@ export class UserPrismaAdapter implements UserRepository {
       });
 
       // Mapeo a entidad de dominio
-      return UserMapper.toDomain(updated);
+      this.logger.info({ updatedUser: updated }, 'User updated successfully');
+      return UserEntity.toDomain(updated);
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         uniqueConstraint: 'User with this email or username already exists',
@@ -107,11 +108,10 @@ export class UserPrismaAdapter implements UserRepository {
    */
   async findById(id: string): Promise<UserEntity | null> {
     try {
-      this.logger.info({ findUserById: id }, 'Finding user by ID...');
       const user = await this.prisma.user.findUnique({
         where: { id },
       });
-      return user ? UserMapper.toDomain(user) : null;
+      return user ? UserEntity.toDomain(user) : null;
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         notFound: 'User with this ID not found',
@@ -130,7 +130,6 @@ export class UserPrismaAdapter implements UserRepository {
    */
   async findByEmail(email: string): Promise<UserEntity | null> {
     try {
-      this.logger.info({ findUserByEmail: email }, 'Finding user by email...');
       const user = await this.prisma.user.findFirst({
         where: {
           email: {
@@ -140,9 +139,7 @@ export class UserPrismaAdapter implements UserRepository {
         },
       });
 
-      const domainUser = user ? UserMapper.toDomain(user) : null;
-      this.logger.info({ user: domainUser }, 'User search completed');
-      return domainUser;
+      return user ? UserEntity.toDomain(user) : null;
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         notFound: 'User with this email not found',
@@ -159,13 +156,12 @@ export class UserPrismaAdapter implements UserRepository {
    */
   async findAll(): Promise<UserEntity[]> {
     try {
-      this.logger.info('Finding all users...');
       const users = await this.prisma.user.findMany({
         orderBy: {
           createdAt: 'desc',
         },
       });
-      return UserMapper.toDomainList(users);
+      return UserEntity.toDomainList(users);
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         notFound: 'User with this criteria not found',

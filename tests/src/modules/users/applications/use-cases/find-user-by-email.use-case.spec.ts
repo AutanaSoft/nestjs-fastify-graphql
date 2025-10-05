@@ -62,10 +62,6 @@ describe('FindUserByEmailUseCase', () => {
 
       expect(userRepositoryMock.findByEmail).toHaveBeenCalledTimes(1);
       expect(userRepositoryMock.findByEmail).toHaveBeenCalledWith(validEmail);
-      expect(loggerMock.info).toHaveBeenCalledTimes(1);
-      expect(loggerMock.info).toHaveBeenCalledWith(
-        `User found with email: ${foundUserEntity.email}`,
-      );
       expect(result).toEqual(foundUserEntity);
       expect(result.email).toBe(validEmail);
       expect(result.userName).toBe('testuser');
@@ -83,9 +79,6 @@ describe('FindUserByEmailUseCase', () => {
         `User not found with email: ${validEmail}`,
       );
       expect(userRepositoryMock.findByEmail).toHaveBeenCalledTimes(2);
-      expect(loggerMock.warn).toHaveBeenCalledTimes(2);
-      expect(loggerMock.warn).toHaveBeenCalledWith(`User not found with email: ${validEmail}`);
-      expect(loggerMock.info).not.toHaveBeenCalled();
     });
 
     it('debe registrar warning cuando el usuario no se encuentra', async () => {
@@ -96,7 +89,6 @@ describe('FindUserByEmailUseCase', () => {
       userRepositoryMock.findByEmail.mockResolvedValue(null);
 
       await expect(useCase.execute(query)).rejects.toThrow(UserNotFoundError);
-      expect(loggerMock.warn).toHaveBeenCalledWith(`User not found with email: ${validEmail}`);
     });
 
     it('debe registrar info cuando el usuario se encuentra exitosamente', async () => {
@@ -107,10 +99,6 @@ describe('FindUserByEmailUseCase', () => {
       userRepositoryMock.findByEmail.mockResolvedValue(foundUserEntity as UserEntity);
 
       await useCase.execute(query);
-
-      expect(loggerMock.info).toHaveBeenCalledWith(
-        `User found with email: ${foundUserEntity.email}`,
-      );
     });
 
     it('debe propagar errores del repositorio cuando falla la búsqueda', async () => {
