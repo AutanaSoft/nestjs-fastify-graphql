@@ -139,8 +139,10 @@ export class UserPrismaAdapter implements UserRepository {
           },
         },
       });
-      this.logger.info({ user: user ? UserMapper.toDomain(user) : null }, 'User search completed');
-      return user ? UserMapper.toDomain(user) : null;
+
+      const domainUser = user ? UserMapper.toDomain(user) : null;
+      this.logger.info({ user: domainUser }, 'User search completed');
+      return domainUser;
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         notFound: 'User with this email not found',
