@@ -106,9 +106,12 @@ export class UserName {
     const normalizedValue = value.toLowerCase().trim();
 
     // Validación de subcadenas prohibidas (incluye coincidencias exactas)
-    const containsForbiddenWord = FORBIDDEN_USER_NAMES.some((forbiddenName) =>
-      normalizedValue.includes(forbiddenName),
+    // Construye una expresión regular que coincida con cualquier nombre prohibido como subcadena (case-insensitive)
+    const forbiddenPattern = new RegExp(
+      FORBIDDEN_USER_NAMES.map(name => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'),
+      'i'
     );
+    const containsForbiddenWord = forbiddenPattern.test(normalizedValue);
 
     if (containsForbiddenWord) {
       throw new ForbiddenUserNameError(value);
