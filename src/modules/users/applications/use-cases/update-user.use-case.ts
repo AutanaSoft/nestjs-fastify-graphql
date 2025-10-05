@@ -35,6 +35,7 @@ export class UpdateUserUseCase {
    * @remarks Valida la existencia del usuario antes de aplicar la actualización.
    */
   async execute(command: UserUpdateType): Promise<UserEntity> {
+    this.logger.info({ command }, 'Executing UpdateUserUseCase');
     const { id, data } = command;
 
     const existingUser = await this.userRepository.findById(id);
@@ -65,6 +66,7 @@ export class UpdateUserUseCase {
       data,
     });
 
+    this.logger.info({ userId: updated.id }, 'User updated successfully');
     return updated;
   }
 }

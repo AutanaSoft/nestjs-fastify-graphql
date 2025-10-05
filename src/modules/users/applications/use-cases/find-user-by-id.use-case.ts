@@ -32,10 +32,8 @@ export class FindUserByIdUseCase {
   async execute(query: FindUserByIdArgsDto): Promise<UserEntity> {
     const user = await this.userRepository.findById(query.id);
     if (!user) {
-      this.logger.warn(`User not found with ID: ${query.id}`);
       throw new UserNotFoundError(`User not found with ID: ${query.id}`);
     }
-    this.logger.info(`User found with ID: ${user.id}`);
     return user;
   }
 }
