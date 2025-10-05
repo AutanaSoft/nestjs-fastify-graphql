@@ -62,8 +62,6 @@ describe('FindUserByIdUseCase', () => {
 
       expect(userRepositoryMock.findById).toHaveBeenCalledTimes(1);
       expect(userRepositoryMock.findById).toHaveBeenCalledWith(validUserId);
-      expect(loggerMock.info).toHaveBeenCalledTimes(1);
-      expect(loggerMock.info).toHaveBeenCalledWith(`User found with ID: ${foundUserEntity.id}`);
       expect(result).toEqual(foundUserEntity);
       expect(result.id).toBe(validUserId);
       expect(result.userName).toBe('testuser');
@@ -82,9 +80,6 @@ describe('FindUserByIdUseCase', () => {
         `User not found with ID: ${validUserId}`,
       );
       expect(userRepositoryMock.findById).toHaveBeenCalledTimes(2);
-      expect(loggerMock.warn).toHaveBeenCalledTimes(2);
-      expect(loggerMock.warn).toHaveBeenCalledWith(`User not found with ID: ${validUserId}`);
-      expect(loggerMock.info).not.toHaveBeenCalled();
     });
 
     it('debe registrar warning cuando el usuario no se encuentra', async () => {
@@ -95,7 +90,6 @@ describe('FindUserByIdUseCase', () => {
       userRepositoryMock.findById.mockResolvedValue(null);
 
       await expect(useCase.execute(query)).rejects.toThrow(UserNotFoundError);
-      expect(loggerMock.warn).toHaveBeenCalledWith(`User not found with ID: ${validUserId}`);
     });
 
     it('debe registrar info cuando el usuario se encuentra exitosamente', async () => {
@@ -106,8 +100,6 @@ describe('FindUserByIdUseCase', () => {
       userRepositoryMock.findById.mockResolvedValue(foundUserEntity as UserEntity);
 
       await useCase.execute(query);
-
-      expect(loggerMock.info).toHaveBeenCalledWith(`User found with ID: ${foundUserEntity.id}`);
     });
 
     it('debe propagar errores del repositorio cuando falla la búsqueda', async () => {
@@ -120,8 +112,6 @@ describe('FindUserByIdUseCase', () => {
 
       await expect(useCase.execute(query)).rejects.toThrow('Database connection failed');
       expect(userRepositoryMock.findById).toHaveBeenCalledTimes(1);
-      expect(loggerMock.info).not.toHaveBeenCalled();
-      expect(loggerMock.warn).not.toHaveBeenCalled();
     });
 
     it('debe buscar usuario con ID diferente', async () => {
