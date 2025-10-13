@@ -7,6 +7,7 @@ import {
   ResetPasswordInputDto,
   SignInInputDto,
   SignUpInputDto,
+  VerifyEmailInputDto,
 } from './auth-inputs.dto';
 
 /**
@@ -14,10 +15,13 @@ import {
  */
 @ArgsType()
 export class SignUpArgsDto {
-  @Field(() => SignUpInputDto)
+  @Field(() => SignUpInputDto, {
+    description: 'Input data for user registration',
+    nullable: false,
+  })
   @ValidateNested()
   @Type(() => SignUpInputDto)
-  input: SignUpInputDto;
+  input!: SignUpInputDto;
 }
 
 /**
@@ -25,10 +29,13 @@ export class SignUpArgsDto {
  */
 @ArgsType()
 export class SignInArgsDto {
-  @Field(() => SignInInputDto)
+  @Field(() => SignInInputDto, {
+    description: 'Input data for user authentication',
+    nullable: false,
+  })
   @ValidateNested()
   @Type(() => SignInInputDto)
-  input: SignInInputDto;
+  input!: SignInInputDto;
 }
 
 /**
@@ -36,10 +43,13 @@ export class SignInArgsDto {
  */
 @ArgsType()
 export class RefreshTokenArgsDto {
-  @Field(() => RefreshTokenInputDto)
+  @Field(() => RefreshTokenInputDto, {
+    description: 'Input data for token refresh',
+    nullable: false,
+  })
   @ValidateNested()
   @Type(() => RefreshTokenInputDto)
-  input: RefreshTokenInputDto;
+  input!: RefreshTokenInputDto;
 }
 
 /**
@@ -47,10 +57,13 @@ export class RefreshTokenArgsDto {
  */
 @ArgsType()
 export class ForgotPasswordArgsDto {
-  @Field(() => ForgotPasswordInputDto)
+  @Field(() => ForgotPasswordInputDto, {
+    description: 'Input data for password reset request',
+    nullable: false,
+  })
   @ValidateNested()
   @Type(() => ForgotPasswordInputDto)
-  input: ForgotPasswordInputDto;
+  input!: ForgotPasswordInputDto;
 }
 
 /**
@@ -58,8 +71,25 @@ export class ForgotPasswordArgsDto {
  */
 @ArgsType()
 export class ResetPasswordArgsDto {
-  @Field(() => ResetPasswordInputDto)
+  @Field(() => ResetPasswordInputDto, {
+    description: 'Input data for password reset',
+    nullable: false,
+  })
   @ValidateNested()
   @Type(() => ResetPasswordInputDto)
-  input: ResetPasswordInputDto;
+  input!: ResetPasswordInputDto;
+}
+
+/**
+ * Args DTO para verificar el correo electrónico de un usuario.
+ */
+@ArgsType()
+export class VerifyEmailArgsDto {
+  @Field(() => VerifyEmailInputDto, {
+    description: 'Input data for email verification',
+    nullable: false,
+  })
+  @ValidateNested()
+  @Type(() => VerifyEmailInputDto)
+  input!: VerifyEmailInputDto;
 }

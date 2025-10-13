@@ -140,3 +140,17 @@ export class ResetPasswordInputDto {
   @IsNotEmpty({ message: 'Password is required' })
   password!: string;
 }
+
+/**
+ * DTO de entrada para la verificación de correo electrónico.
+ *
+ * Utiliza un token enviado por correo para confirmar la propiedad
+ * del email y activar la cuenta de usuario.
+ */
+@InputType({ description: 'Input data for email verification' })
+export class VerifyEmailInputDto {
+  @Field(() => String, { description: 'Email verification token', nullable: false })
+  @IsString({ message: 'Token must be a string' })
+  @IsNotEmpty({ message: 'Token is required' })
+  token!: string;
+}

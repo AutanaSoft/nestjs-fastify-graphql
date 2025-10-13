@@ -20,21 +20,38 @@ export class AuthCredentialsDto {
 }
 
 /**
+ *  DTO base para respuestas que indican éxito o fracaso de una operación.
+ */
+@ObjectType()
+class AuthSuccessResponseDto {
+  @Field(() => Boolean)
+  success: boolean;
+}
+
+/**
+ * DTO de respuesta para la operación de cierre de sesión.
+ * Indica si el usuario se desconectó exitosamente.
+ */
+@ObjectType()
+export class SignOutResponseDto extends AuthSuccessResponseDto {}
+
+/**
  * DTO de respuesta para la operación de olvido de contraseña.
  * Indica si el correo de recuperación fue enviado exitosamente.
  */
 @ObjectType()
-export class ForgotPasswordResponseDto {
-  @Field(() => Boolean)
-  success: boolean;
-}
+export class ForgotPasswordResponseDto extends AuthSuccessResponseDto {}
 
 /**
  * DTO de respuesta para la operación de restablecimiento de contraseña.
  * Indica si la contraseña fue restablecida exitosamente.
  */
 @ObjectType()
-export class ResetPasswordResponseDto {
-  @Field(() => Boolean)
-  success: boolean;
-}
+export class ResetPasswordResponseDto extends AuthSuccessResponseDto {}
+
+/**
+ * DTO de respuesta para la operación de verificación de correo electrónico.
+ * Indica si el correo fue verificado exitosamente.
+ */
+@ObjectType()
+export class VerifyEmailResponseDto extends AuthSuccessResponseDto {}

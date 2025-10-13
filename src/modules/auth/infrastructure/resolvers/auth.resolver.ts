@@ -9,6 +9,8 @@ import {
   ResetPasswordResponseDto,
   SignInArgsDto,
   SignUpArgsDto,
+  VerifyEmailArgsDto,
+  VerifyEmailResponseDto,
 } from '../../application/dto';
 
 @Resolver()
@@ -64,5 +66,17 @@ export class AuthResolver {
     // Implement reset password logic here
     this.logger.info('User password reset successfully');
     return new ResetPasswordResponseDto();
+  }
+
+  @Mutation(() => VerifyEmailResponseDto, {
+    name: 'verifyEmail',
+    description: 'Verify user email address',
+  })
+  verifyEmail(@Args() params: VerifyEmailArgsDto): VerifyEmailResponseDto {
+    this.logger.assign({ resolver: 'verifyEmail', params });
+    this.logger.info('Verify email request received');
+    // Implement email verification logic here
+    this.logger.info('User email verified successfully');
+    return new VerifyEmailResponseDto();
   }
 }
