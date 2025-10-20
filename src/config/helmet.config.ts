@@ -22,6 +22,20 @@ export const APOLLO_STUDIO_ORIGINS = [
 ] as const;
 
 /**
+ * CDNs de Apollo Server para recursos estáticos (scripts, estilos, imágenes, fuentes).
+ * @remarks
+ * Estos dominios se utilizan por Apollo Server Landing Page y el Sandbox embebido.
+ * Solo se permiten en desarrollo para cargar recursos del playground de GraphQL.
+ * Incluye CDNs para scripts, estilos, imágenes y fuentes de Google.
+ */
+export const APOLLO_CDN_ORIGINS = [
+  'https://apollo-server-landing-page.cdn.apollographql.com',
+  'https://embeddable-sandbox.cdn.apollographql.com',
+  'https://fonts.googleapis.com',
+  'https://fonts.gstatic.com',
+] as const;
+
+/**
  * Tipo exportado para la configuración de Helmet compatible con Fastify.
  * @remarks
  * Útil para inyección de dependencias usando `ConfigType<typeof helmetConfig>`.
@@ -77,12 +91,27 @@ function buildMinimalCsp(): Pick<FastifyHelmetOptions, 'contentSecurityPolicy'> 
         defaultSrc: ["'self'"],
         scriptSrc: [
           "'self'",
-          ...(allowDev ? ["'unsafe-inline'", "'unsafe-eval'", ...trustedOrigins] : []),
+          ...(allowDev
+            ? ["'unsafe-inline'", "'unsafe-eval'", ...trustedOrigins, ...APOLLO_CDN_ORIGINS]
+            : []),
         ],
-        styleSrc: ["'self'", ...(allowDev ? ["'unsafe-inline'", ...trustedOrigins] : [])],
-        imgSrc: ["'self'", 'data:', 'blob:', ...(allowDev ? trustedOrigins : [])],
+        styleSrc: [
+          "'self'",
+          ...(allowDev ? ["'unsafe-inline'", ...trustedOrigins, ...APOLLO_CDN_ORIGINS] : []),
+        ],
+        imgSrc: [
+          "'self'",
+          'data:',
+          'blob:',
+          ...(allowDev ? [...trustedOrigins, ...APOLLO_CDN_ORIGINS] : []),
+        ],
         connectSrc: ["'self'", ...(allowDev ? ['ws:', 'wss:', ...trustedOrigins] : [])],
-        fontSrc: ["'self'", 'data:', ...(allowDev ? trustedOrigins : [])],
+        fontSrc: [
+          "'self'",
+          'data:',
+          ...(allowDev ? [...trustedOrigins, ...APOLLO_CDN_ORIGINS] : []),
+        ],
+        manifestSrc: ["'self'", ...(allowDev ? APOLLO_CDN_ORIGINS : [])],
         objectSrc: ["'none'"],
         frameAncestors: allowDev ? ["'self'", ...APOLLO_STUDIO_ORIGINS] : ["'none'"],
         frameSrc: allowDev ? ["'self'", ...APOLLO_STUDIO_ORIGINS] : ["'none'"],
