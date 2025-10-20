@@ -1,6 +1,5 @@
 import { AppConfig, CORRELATION_ID_HEADER } from '@/config';
-import { fastifyCors } from '@fastify/cors';
-import { fastifyHelmet } from '@fastify/helmet';
+import fastifyHelmet from '@fastify/helmet';
 import { ValidationPipe, ValidationPipeOptions } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
@@ -16,10 +15,11 @@ async function bootstrap() {
   const FastifyModule = new FastifyAdapter();
 
   // Enable Helmet for security headers
+  // @ts-expect-error - Typings may be outdated
   FastifyModule.register(fastifyHelmet, HelmetConfig);
 
   // CORS configuration
-  FastifyModule.register(fastifyCors, CorsConfig);
+  FastifyModule.enableCors(CorsConfig);
 
   // Custom request ID handling
   FastifyModule.getInstance().addHook('onRequest', (request, reply, done) => {
