@@ -1,6 +1,6 @@
 import { AppConfig, CORRELATION_ID_HEADER } from '@/config';
-import cors, { FastifyCorsOptions } from '@fastify/cors';
-import helmet, { FastifyHelmetOptions } from '@fastify/helmet';
+import { fastifyCors } from '@fastify/cors';
+import { fastifyHelmet } from '@fastify/helmet';
 import { ValidationPipe, ValidationPipeOptions } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
@@ -8,48 +8,49 @@ import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify
 import { Logger } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
 import { AppModule } from './app.module';
+import { CorsConfig } from './config/cors.config';
+import { HelmetConfig } from './config/helmet.config';
 import { buildGraphQLUrl, buildServerUrl } from './shared/applications/utils';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter(), {
+  const FastifyModule = new FastifyAdapter();
+
+  // Enable Helmet for security headers
+  FastifyModule.register(fastifyHelmet, HelmetConfig);
+
+  // CORS configuration
+  FastifyModule.register(fastifyCors, CorsConfig);
+
+  // Custom request ID handling
+  FastifyModule.getInstance().addHook('onRequest', (request, reply, done) => {
+    reply.header('X-Request-Id', request.id);
+    done();
+  });
+
+  // Set custom request ID generator to use correlation ID if provided
+  FastifyModule.getInstance().setGenReqId((req) => {
+    const correlationId = req.headers[CORRELATION_ID_HEADER];
+    return Array.isArray(correlationId) ? correlationId[0] : correlationId || randomUUID();
+  });
+
+  const app = await NestFactory.create<NestFastifyApplication>(AppModule, FastifyModule, {
     bufferLogs: true,
   });
+
+  // Obtener configuración de la aplicación
+  const configService = app.get(ConfigService);
+  const _appConfig = configService.getOrThrow<AppConfig>('appConfig');
+  const _validationPipeOptions =
+    configService.getOrThrow<ValidationPipeOptions>('validationPipeConfig');
 
   // Habilitar el logger de NestJS
   const logger = app.get(Logger);
   app.useLogger(logger);
 
-  // Obtener configuración de la aplicación
-  const configService = app.get(ConfigService);
-  const _appConfig = configService.getOrThrow<AppConfig>('appConfig');
-  const _corsConfig = configService.getOrThrow<FastifyCorsOptions>('corsConfig');
-  const _helmetOptions = configService.getOrThrow<FastifyHelmetOptions>('helmetConfig');
-  const _validationPipeOptions =
-    configService.getOrThrow<ValidationPipeOptions>('validationPipeConfig');
-
-  // Obtener instancia del servidor Fastify
-  const fastifyServer = app.getHttpAdapter().getInstance();
-
-  // Middleware para gestionar Correlation ID
-  fastifyServer.setGenReqId((req) => {
-    const correlationId = req.headers[CORRELATION_ID_HEADER];
-    return Array.isArray(correlationId) ? correlationId[0] : correlationId || randomUUID();
-  });
-
-  // Hook para añadir el Correlation ID a las respuestas
-  fastifyServer.addHook('onRequest', (request, reply, done) => {
-    reply.header(CORRELATION_ID_HEADER, request.id);
-    done();
-  });
-
   // Configurar prefijo global si está habilitado
   if (_appConfig.server.useGlobalPrefix) {
     app.setGlobalPrefix(_appConfig.server.globalPrefix);
   }
-
-  // Habilitar CORS si está configurado
-  await app.register(cors, _corsConfig);
-  await app.register(helmet, _helmetOptions);
 
   // Configurar validación global
   app.useGlobalPipes(new ValidationPipe(_validationPipeOptions));

@@ -2,14 +2,19 @@ import { FastifyHelmetOptions } from '@fastify/helmet';
 import { registerAs } from '@nestjs/config';
 
 /**
- * Lista de hosts de confianza para desarrollo utilizados en cabeceras de seguridad.
- * @public
+ * Hosts HTTP confiables para desarrollo local.
+ * @remarks
+ * Se utilizan en las directivas CSP para permitir recursos desde localhost durante el desarrollo.
+ * Solo se aplican cuando NODE_ENV no es 'production'.
  */
-export const DEV_TRUSTED_HOSTS = ['localhost', '127.0.0.1', '*.localhost', '*.local'] as const;
+export const DEV_TRUSTED_HOSTS: string[] = ['http://localhost', 'http://127.0.0.1'];
 
 /**
- * Orígenes permitidos para las herramientas de Apollo Studio en modo desarrollo.
- * @public
+ * Orígenes autorizados de Apollo Studio para embeber GraphQL Playground.
+ * @remarks
+ * Estos dominios se permiten en las directivas frameAncestors y frameSrc únicamente en desarrollo,
+ * permitiendo que Apollo Studio embeba el playground de GraphQL en un iframe.
+ * En producción estas directivas se configuran como 'none' por seguridad.
  */
 export const APOLLO_STUDIO_ORIGINS = [
   'https://sandbox.embed.apollographql.com',
@@ -17,38 +22,67 @@ export const APOLLO_STUDIO_ORIGINS = [
 ] as const;
 
 /**
- * Determina si la aplicación se está ejecutando en un entorno productivo.
- * @returns Verdadero cuando `NODE_ENV` es `production`.
+ * Tipo exportado para la configuración de Helmet compatible con Fastify.
+ * @remarks
+ * Útil para inyección de dependencias usando `ConfigType<typeof helmetConfig>`.
  */
-function isProduction(): boolean {
-  return (process.env.NODE_ENV ?? 'development') === 'production';
+export type HelmetConfig = FastifyHelmetOptions;
+
+/**
+ * Valida y filtra orígenes según criterios de seguridad.
+ * @param origins Array de URLs a validar.
+ * @param requireHttps Si es true, solo acepta URLs con protocolo HTTPS.
+ * @returns Array de URLs válidas que cumplen los criterios.
+ */
+function validateOrigins(origins: string[], requireHttps = false): string[] {
+  return origins.filter((origin) => {
+    try {
+      const url = new URL(origin);
+      return !requireHttps || url.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  });
+}
+
+/**
+ * Obtiene hosts de producción confiables desde variables de entorno.
+ * @returns Array de hosts HTTPS validados para producción.
+ */
+function getProdTrustedHosts(): string[] {
+  const prodHostsEnv = process.env.HELMET_PROD_TRUSTED_HOSTS || '';
+  const prodHosts = prodHostsEnv
+    .split(',')
+    .map((host) => host.trim())
+    .filter(Boolean);
+  return validateOrigins(prodHosts, true);
 }
 
 /**
  * Construye una política CSP mínima adecuada para Fastify Helmet según el entorno.
- * @param prod Indica si se ejecuta en producción para endurecer las directivas.
+ * @remarks
+ * En desarrollo permite orígenes adicionales, scripts inline y reporta violaciones sin bloquear.
+ * En producción aplica restricciones estrictas y bloquea activamente las violaciones.
  * @returns Configuración parcial con la política de seguridad de contenidos.
  */
-function buildMinimalCsp(prod: boolean): Pick<FastifyHelmetOptions, 'contentSecurityPolicy'> {
-  const allowDev = !prod;
-  const httpsTrustedHosts = DEV_TRUSTED_HOSTS.map((h) => `https://${h}`);
-  const extraCorsOrigins = resolveCorsAllowedOriginsForCsp();
+function buildMinimalCsp(): Pick<FastifyHelmetOptions, 'contentSecurityPolicy'> {
+  const isProduction = (process.env.NODE_ENV ?? 'development') === 'production';
+  const allowDev = !isProduction;
+  const prodTrustedHosts = getProdTrustedHosts();
+  const trustedOrigins = Array.from(new Set<string>([...DEV_TRUSTED_HOSTS, ...prodTrustedHosts]));
 
-  const unifiedHttpsOrigins = Array.from(
-    new Set<string>([...httpsTrustedHosts, ...extraCorsOrigins]),
-  );
   return {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: [
           "'self'",
-          ...(allowDev ? ["'unsafe-inline'", "'unsafe-eval'", ...unifiedHttpsOrigins] : []),
+          ...(allowDev ? ["'unsafe-inline'", "'unsafe-eval'", ...trustedOrigins] : []),
         ],
-        styleSrc: ["'self'", "'unsafe-inline'", ...(allowDev ? unifiedHttpsOrigins : [])],
-        imgSrc: ["'self'", 'data:', 'blob:', ...(allowDev ? unifiedHttpsOrigins : [])],
-        connectSrc: ["'self'", ...(allowDev ? ['ws:', 'wss:', ...unifiedHttpsOrigins] : [])],
-        fontSrc: ["'self'", 'data:', ...(allowDev ? unifiedHttpsOrigins : [])],
+        styleSrc: ["'self'", ...(allowDev ? ["'unsafe-inline'", ...trustedOrigins] : [])],
+        imgSrc: ["'self'", 'data:', 'blob:', ...(allowDev ? trustedOrigins : [])],
+        connectSrc: ["'self'", ...(allowDev ? ['ws:', 'wss:', ...trustedOrigins] : [])],
+        fontSrc: ["'self'", 'data:', ...(allowDev ? trustedOrigins : [])],
         objectSrc: ["'none'"],
         frameAncestors: allowDev ? ["'self'", ...APOLLO_STUDIO_ORIGINS] : ["'none'"],
         frameSrc: allowDev ? ["'self'", ...APOLLO_STUDIO_ORIGINS] : ["'none'"],
@@ -59,34 +93,18 @@ function buildMinimalCsp(prod: boolean): Pick<FastifyHelmetOptions, 'contentSecu
 }
 
 /**
- * Obtiene los orígenes adicionales permitidos en HTTPS desde `CORS_ALLOWED_ORIGINS`.
- * @returns Conjunto sin duplicados de orígenes válidos convertidos a HTTPS.
+ * Crea las opciones completas de Helmet para Fastify con configuración adaptativa por entorno.
+ * @remarks
+ * Incluye CSP, HSTS (solo en producción), y otras cabeceras de seguridad recomendadas.
+ * @returns Configuración completa de Helmet compatible con Fastify.
  */
-function resolveCorsAllowedOriginsForCsp(): string[] {
-  const raw = process.env.CORS_ALLOWED_ORIGINS || '';
-  if (!raw) return [];
-  return Array.from(
-    new Set(
-      raw
-        .split(',')
-        .map((o) => o.trim())
-        .filter(Boolean)
-        .map((o) => (o.startsWith('http://') ? o.replace('http://', 'https://') : o))
-        .filter((o) => o.startsWith('https://')),
-    ),
-  );
-}
+function createHelmetOptions(): FastifyHelmetOptions {
+  const isProduction = (process.env.NODE_ENV ?? 'development') === 'production';
+  const { contentSecurityPolicy } = buildMinimalCsp();
 
-/**
- * Crea la configuración completa de Helmet ajustada al entorno actual.
- * @param prod Indica si se debe aplicar configuración endurecida para producción.
- * @returns Opciones compatibles con `@fastify/helmet`.
- */
-function createHelmetOptions(prod: boolean): FastifyHelmetOptions {
-  const { contentSecurityPolicy } = buildMinimalCsp(prod);
   return {
     contentSecurityPolicy,
-    strictTransportSecurity: prod
+    strictTransportSecurity: isProduction
       ? { maxAge: 31536000, includeSubDomains: true, preload: true }
       : false,
     noSniff: true,
@@ -97,10 +115,11 @@ function createHelmetOptions(prod: boolean): FastifyHelmetOptions {
 }
 
 /**
- * Registra la configuración de Helmet bajo el espacio de nombres `helmetConfig`.
- * @returns Opciones de Helmet listas para inyectarse en el módulo HTTP.
+ * Instancia pre-configurada de opciones de Helmet para Fastify.
+ * @remarks
+ * Exportación lista para usar directamente sin necesidad de llamar a createHelmetOptions().
+ * La configuración se adapta automáticamente según el entorno (desarrollo/producción).
  */
-export default registerAs('helmetConfig', (): FastifyHelmetOptions => {
-  const prod = isProduction();
-  return createHelmetOptions(prod);
-});
+export const HelmetConfig: FastifyHelmetOptions = createHelmetOptions();
+
+export default registerAs('helmetConfig', (): FastifyHelmetOptions => HelmetConfig);
