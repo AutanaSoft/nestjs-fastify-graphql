@@ -124,7 +124,8 @@ function buildMinimalCsp(): Pick<FastifyHelmetOptions, 'contentSecurityPolicy'> 
 /**
  * Crea las opciones completas de Helmet para Fastify con configuración adaptativa por entorno.
  * @remarks
- * Incluye CSP, HSTS (solo en producción), y otras cabeceras de seguridad recomendadas.
+ * En desarrollo deshabilita CSP completamente para facilitar debugging y uso de herramientas.
+ * En producción incluye CSP estricta, HSTS y otras cabeceras de seguridad recomendadas.
  * @returns Configuración completa de Helmet compatible con Fastify.
  */
 function createHelmetOptions(): FastifyHelmetOptions {
@@ -132,7 +133,8 @@ function createHelmetOptions(): FastifyHelmetOptions {
   const { contentSecurityPolicy } = buildMinimalCsp();
 
   return {
-    contentSecurityPolicy,
+    // Deshabilitar CSP en desarrollo para evitar interferencias con herramientas
+    contentSecurityPolicy: isProduction ? contentSecurityPolicy : false,
     strictTransportSecurity: isProduction
       ? { maxAge: 31536000, includeSubDomains: true, preload: true }
       : false,
