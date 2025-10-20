@@ -3,6 +3,7 @@
     "Autana",
     "commitlint",
     "correlacionar",
+    "dbgenerated",
     "nestjs",
     "openssl",
     "parseados",
@@ -11,6 +12,7 @@
     "rhel",
     "swcrc",
     "tipada",
-    "tipado"
+    "tipado",
+    "uuid"
   ]
 }
