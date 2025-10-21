@@ -161,7 +161,7 @@ export function validateRolePermissions(
   const missingByRole: Record<string, string[]> = {};
 
   for (const [role, permissions] of Object.entries(rolePermissions)) {
-    const missing = permissions.filter((p) => !validPermissions.has(p as string));
+    const missing = permissions.filter((p) => !validPermissions.has(p));
     if (missing.length > 0) {
       missingByRole[role] = [...missing];
     }

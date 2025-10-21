@@ -15,9 +15,9 @@ CREATE TABLE "users" (
     "password" VARCHAR(64) NOT NULL,
     "status" "UserStatus" NOT NULL DEFAULT 'REGISTERED',
     "role" "UserRole" NOT NULL DEFAULT 'USER',
-    "email_verified" TIMESTAMP(6),
-    "created_at" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(6) NOT NULL,
+    "email_verified" TIMESTAMPTZ,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
@@ -27,8 +27,8 @@ CREATE TABLE "permissions" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "name" VARCHAR(50) NOT NULL,
     "description" VARCHAR(255),
-    "created_at" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(6) NOT NULL,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL,
 
     CONSTRAINT "permissions_pkey" PRIMARY KEY ("id")
 );
@@ -38,7 +38,7 @@ CREATE TABLE "user_permissions" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "user_id" UUID NOT NULL,
     "permission_id" UUID NOT NULL,
-    "granted_at" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "granted_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "user_permissions_pkey" PRIMARY KEY ("id")
 );
@@ -51,12 +51,12 @@ CREATE TABLE "sessions" (
     "type" "SessionType" NOT NULL DEFAULT 'WEB',
     "user_agent" VARCHAR(255),
     "ip_address" VARCHAR(45),
-    "expires_at" TIMESTAMP(6) NOT NULL,
-    "last_used_at" TIMESTAMP(6),
+    "expires_at" TIMESTAMPTZ NOT NULL,
+    "last_used_at" TIMESTAMPTZ,
     "revoked" BOOLEAN NOT NULL DEFAULT false,
-    "revoked_at" TIMESTAMP(6),
-    "created_at" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(6) NOT NULL,
+    "revoked_at" TIMESTAMPTZ,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL,
 
     CONSTRAINT "sessions_pkey" PRIMARY KEY ("id")
 );

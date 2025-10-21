@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
-import { HashUtils } from '../../../src/shared/applications/utils/hash.utils';
 import { getAdminUserData, getAdminCredentialsWarning } from '../data/admin-user.data';
 import { ROLE_PERMISSIONS } from '../data/permissions.data';
+import { HashUtils } from '@/shared/applications/utils';
 
 /**
  * Seed del usuario administrador inicial.
