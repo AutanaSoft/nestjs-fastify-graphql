@@ -15,6 +15,7 @@ export type UserEntityData = {
   readonly password: string;
   readonly status: UserStatus;
   readonly role: UserRole;
+  readonly emailVerified: Date | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 };
@@ -39,6 +40,7 @@ export class UserEntity {
   readonly password: string;
   readonly status: UserStatus;
   readonly role: UserRole;
+  readonly emailVerified: Date | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 
@@ -58,6 +60,7 @@ export class UserEntity {
     this.password = data.password;
     this.status = data.status;
     this.role = data.role;
+    this.emailVerified = data.emailVerified;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
   }
@@ -83,6 +86,7 @@ export class UserEntity {
       password: user.password,
       status: this.mapStatusToDomain(user.status),
       role: this.mapRoleToDomain(user.role),
+      emailVerified: user.emailVerified,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     });
