@@ -5,6 +5,7 @@ import {
   createThrottlerModuleOptions,
   graphqlConfig,
   helmetConfig,
+  jwtConfig,
   throttlerConfig,
   validationPipeConfig,
 } from '@/config';
@@ -30,7 +31,7 @@ import { SharedModule } from './shared/shared.module';
     ConfigModule.forRoot({
       envFilePath: ['.env'],
       isGlobal: true,
-      load: [appConfig, corsConfig, helmetConfig, validationPipeConfig],
+      load: [appConfig, corsConfig, helmetConfig, validationPipeConfig, jwtConfig],
     }),
     LoggerModule.forRootAsync({
       imports: [ConfigModule.forFeature(loggerConfig)],

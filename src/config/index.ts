@@ -8,11 +8,16 @@ export {
 } from './graphql.config';
 export { default as helmetConfig } from './helmet.config';
 export {
+  createJwtModuleOptions,
+  default as jwtConfig,
+  JwtConfig,
+  type JwtConfigType,
+} from './jwt.config';
+export {
   createLoggerModuleOptions,
   default as loggerConfig,
   type LoggerConfig,
 } from './logger.config';
-
 export {
   createThrottlerModuleOptions,
   default as throttlerConfig,
