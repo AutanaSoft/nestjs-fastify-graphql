@@ -1,0 +1,101 @@
+/// Tipos de sesión para control de acceso
+enum SessionType {
+  WEB
+  MOBILE
+  API
+}
+
+/// Roles asignados a los usuarios
+enum UserRole {
+  ADMIN
+  USER
+  GUEST
+}
+
+/// Estado de los usuarios en el sistema
+enum UserStatus {
+  REGISTERED
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+/// Entidad de usuario del sistema
+model User {
+  id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String     @unique @db.VarChar(64)
+  userName      String     @unique @map("user_name") @db.VarChar(20)
+  password      String     @db.VarChar(64)
+  status        UserStatus @default(REGISTERED)
+  role          UserRole   @default(USER)
+  emailVerified DateTime?  @map("email_verified") @db.Timestamp(6)
+  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt     DateTime   @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  /// Relaciones
+  sessions    Session[]
+  permissions UserPermission[]
+
+  @@index([email])
+  @@index([userName])
+  @@index([createdAt])
+  @@map("users")
+}
+
+/// Permisos del sistema con formato resource:action
+/// Ejemplos: user:read, user:write, user:delete, post:read, settings:manage
+model Permission {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @unique @db.VarChar(50)
+  description String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  /// Relaciones
+  users UserPermission[]
+
+  @@index([name])
+  @@map("permissions")
+}
+
+/// Tabla intermedia para relación muchos-a-muchos entre User y Permission
+model UserPermission {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  permissionId String   @map("permission_id") @db.Uuid
+  grantedAt    DateTime @default(now()) @map("granted_at") @db.Timestamp(6)
+
+  /// Relaciones
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+  @@index([userId])
+  @@index([permissionId])
+  @@map("user_permissions")
+}
+
+/// Sesiones y refresh tokens para manejo de autenticación
+model Session {
+  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String      @map("user_id") @db.Uuid
+  refreshToken String      @unique @map("refresh_token") @db.VarChar(255)
+  type         SessionType @default(WEB)
+  userAgent    String?     @map("user_agent") @db.VarChar(255)
+  ipAddress    String?     @map("ip_address") @db.VarChar(45)
+  expiresAt    DateTime    @map("expires_at") @db.Timestamp(6)
+  lastUsedAt   DateTime?   @map("last_used_at") @db.Timestamp(6)
+  revoked      Boolean     @default(false)
+  revokedAt    DateTime?   @map("revoked_at") @db.Timestamp(6)
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt    DateTime    @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  /// Relaciones
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshToken])
+  @@index([expiresAt])
+  @@index([revoked])
+  @@map("sessions")
+}

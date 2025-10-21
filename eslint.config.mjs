@@ -10,6 +10,7 @@ export default tseslint.config(
       'eslint.config.mjs',
       'commitlint.config.mjs',
       'lint-staged.config.mjs',
+      'prisma/seeds/**',
     ],
   },
   eslint.configs.recommended,
