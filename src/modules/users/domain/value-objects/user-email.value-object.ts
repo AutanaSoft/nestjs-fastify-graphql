@@ -1,6 +1,6 @@
+import { ForbiddenEmailDomainError, UserCreationError } from '@/modules/users/domain/errors';
 import { isEmail } from 'class-validator';
 import { FORBIDDEN_EMAIL_DOMAINS } from '../constants';
-import { ForbiddenEmailDomainError, UserCreationError } from '../errors';
 
 /**
  * Value Object que encapsula y valida un email de usuario.

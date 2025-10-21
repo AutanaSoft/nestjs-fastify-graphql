@@ -1,7 +1,6 @@
 import { SharedModule } from '@/shared/shared.module';
 import { Module } from '@nestjs/common';
 import {
-  CreateUserUseCase,
   FindUserByEmailUseCase,
   FindUserByIdUseCase,
   UpdateUserUseCase,
@@ -12,13 +11,12 @@ import { UserResolvers } from './infrastructure/resolvers';
 
 @Module({
   imports: [SharedModule],
-  exports: [],
+  exports: [USER_REPOSITORY],
   providers: [
     {
       provide: USER_REPOSITORY,
       useClass: UserPrismaAdapter,
     },
-    CreateUserUseCase,
     FindUserByEmailUseCase,
     FindUserByIdUseCase,
     UpdateUserUseCase,

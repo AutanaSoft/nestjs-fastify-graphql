@@ -1,5 +1,5 @@
 import { FORBIDDEN_USER_NAMES } from '../constants';
-import { ForbiddenUserNameError, UserCreationError } from '../errors';
+import { ForbiddenUserNameError, UserCreationError } from '@/modules/users/domain/errors';
 
 /**
  * Value Object que encapsula y valida un nombre de usuario.

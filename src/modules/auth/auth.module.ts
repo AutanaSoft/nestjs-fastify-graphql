@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { UsersModule } from '../users/users.module';
+import { SignUpUseCase } from './application/use-cases';
 import { AuthResolver } from './infrastructure/resolvers';
 
 /**
@@ -10,8 +12,8 @@ import { AuthResolver } from './infrastructure/resolvers';
  * @public
  */
 @Module({
-  imports: [],
-  providers: [AuthResolver],
+  imports: [UsersModule],
+  providers: [AuthResolver, SignUpUseCase],
   exports: [],
 })
 export class AuthModule {}

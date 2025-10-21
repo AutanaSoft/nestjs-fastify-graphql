@@ -6,6 +6,7 @@ export type UserCreateType = {
   password: string;
   status?: UserStatus;
   role?: UserRole;
+  emailVerified?: Date | null;
 };
 
 export type UserUpdateType = {

@@ -12,18 +12,22 @@ import {
   VerifyEmailArgsDto,
   VerifyEmailResponseDto,
 } from '../../application/dto';
+import { SignUpUseCase } from '../../application/use-cases';
 
 @Resolver()
 export class AuthResolver {
-  constructor(@InjectPinoLogger(AuthResolver.name) private readonly logger: PinoLogger) {}
+  constructor(
+    @InjectPinoLogger(AuthResolver.name) private readonly logger: PinoLogger,
+    private readonly signUpUseCase: SignUpUseCase,
+  ) {}
 
   @Mutation(() => AuthCredentialsDto, { name: 'signUp', description: 'Sign up a new user' })
-  signUp(@Args() params: SignUpArgsDto): AuthCredentialsDto {
+  async signUp(@Args() params: SignUpArgsDto): Promise<AuthCredentialsDto> {
     this.logger.assign({ resolver: 'signUp', params });
     this.logger.info('Sign up request received');
-    // Implement sign-up logic here
+    const credentials = await this.signUpUseCase.execute(params);
     this.logger.info('User signed up successfully');
-    return new AuthCredentialsDto();
+    return credentials;
   }
 
   @Query(() => AuthCredentialsDto, { name: 'signIn', description: 'Sign in an existing user' })

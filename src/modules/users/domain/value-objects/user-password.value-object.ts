@@ -1,4 +1,4 @@
-import { UserCreationError } from '../errors';
+import { UserCreationError } from '@/modules/users/domain/errors';
 
 /**
  * Value Object que encapsula y valida una contraseña de usuario.
