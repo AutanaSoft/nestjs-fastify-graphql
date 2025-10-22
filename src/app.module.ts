@@ -3,6 +3,7 @@ import {
   corsConfig,
   createGraphQLModuleOptions,
   createThrottlerModuleOptions,
+  cryptoConfig,
   graphqlConfig,
   helmetConfig,
   jwtConfig,
@@ -31,7 +32,7 @@ import { SharedModule } from './shared/shared.module';
     ConfigModule.forRoot({
       envFilePath: ['.env'],
       isGlobal: true,
-      load: [appConfig, corsConfig, helmetConfig, validationPipeConfig, jwtConfig],
+      load: [appConfig, corsConfig, helmetConfig, validationPipeConfig, jwtConfig, cryptoConfig],
     }),
     LoggerModule.forRootAsync({
       imports: [ConfigModule.forFeature(loggerConfig)],
