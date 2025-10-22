@@ -10,7 +10,7 @@ import {
   InvalidRefreshTokenError,
   RevokedRefreshTokenError,
 } from '../errors';
-import { SessionRepository } from '../repositories';
+import { SessionRepository, SESSION_REPOSITORY } from '../repositories';
 import type { CreateSessionData, RefreshTokenContext } from '../types';
 
 /**
@@ -24,6 +24,7 @@ import type { CreateSessionData, RefreshTokenContext } from '../types';
 @Injectable()
 export class RefreshTokenService {
   constructor(
+    @Inject(SESSION_REPOSITORY)
     private readonly sessionRepository: SessionRepository,
     private readonly cryptoService: CryptoService,
     @Inject(jwtConfig.KEY)

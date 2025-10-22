@@ -32,10 +32,19 @@ export class AuthResolver {
   ) {}
 
   @Mutation(() => AuthCredentialsDto, { name: 'signUp', description: 'Sign up a new user' })
-  async signUp(@Args() params: SignUpArgsDto): Promise<AuthCredentialsDto> {
-    this.logger.assign({ resolver: 'signUp', params });
+  async signUp(
+    @Args() params: SignUpArgsDto,
+    @Context() context: GraphQLContext,
+  ): Promise<AuthCredentialsDto> {
+    this.logger.assign({ resolver: 'signUp' });
     this.logger.info('Sign up request received');
-    const credentials = await this.signUpUseCase.execute(params);
+
+    const credentials = await this.signUpUseCase.execute(params, {
+      userAgent: context.req.headers['user-agent'],
+      ipAddress: context.req.ip,
+      type: SessionType.WEB,
+    });
+
     this.logger.info('User signed up successfully');
     return credentials;
   }

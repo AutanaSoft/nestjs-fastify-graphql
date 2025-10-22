@@ -80,3 +80,5 @@ export abstract class SessionRepository {
    */
   abstract countActiveSessions(userId: string): Promise<number>;
 }
+
+export const SESSION_REPOSITORY = Symbol('SessionRepository');
