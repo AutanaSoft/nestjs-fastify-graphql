@@ -6,7 +6,9 @@ import { HandlerOrmErrorsService, PrismaService } from '@/shared/applications/se
 import { CryptoService } from '@/shared/infrastructure/services';
 import { UserEntity } from '../../domain/entities';
 import { UserRepository } from '../../domain/repository';
-import { UserCreateType, UserUpdateType, UserPermissionWithDetails } from '../../domain/types';
+import { UserCreateType, UserUpdateType } from '../../domain/types';
+import { UserPermissionService } from '../../domain/services';
+import { UserRole } from '../../domain/enums';
 
 // Tipo para User con permisos anidados
 type UserWithPermissions = User & {
@@ -31,9 +33,9 @@ export class UserPrismaAdapter implements UserRepository {
   ) {}
 
   /**
-   * Crea un usuario persistiendo la entidad en la base de datos.
+   * Crea un usuario persistiendo la entidad en la base de datos con permisos automáticos.
    * @param user Datos de creación del usuario.
-   * @returns Promesa con la entidad almacenada.
+   * @returns Promesa con la entidad almacenada incluyendo permisos del rol.
    * @throws DataBaseError Cuando ocurre un fallo de persistencia.
    * @throws ConflictError Cuando ya existe un usuario con el mismo email o userName.
    */
@@ -41,7 +43,7 @@ export class UserPrismaAdapter implements UserRepository {
     try {
       this.logger.info(
         { createUser: { ...user, email: '***', password: '***' } },
-        'Creating new user...',
+        'Creating new user with automatic role permissions...',
       );
 
       // Cifrar email y generar hash para búsqueda
@@ -60,18 +62,63 @@ export class UserPrismaAdapter implements UserRepository {
       if (user.status) createData.status = user.status;
       if (user.role) createData.role = user.role;
 
-      // Persistencia con Prisma
-      const created = await this.prisma.user.create({
-        data: createData,
+      // Usar transacción para crear usuario y asignar permisos automáticamente
+      const result = await this.prisma.$transaction(async (prisma) => {
+        // Crear el usuario
+        const created = await prisma.user.create({
+          data: createData,
+        });
+
+        // Obtener permisos por defecto según el rol
+        const rolePermissions = UserPermissionService.getDefaultPermissionsForRole(
+          user.role || UserRole.USER,
+        );
+
+        // Buscar los IDs de los permisos en la base de datos
+        const permissions = await prisma.permission.findMany({
+          where: {
+            name: {
+              in: rolePermissions,
+            },
+          },
+        });
+
+        // Crear las relaciones UserPermission
+        if (permissions.length > 0) {
+          await prisma.userPermission.createMany({
+            data: permissions.map((permission) => ({
+              userId: created.id,
+              permissionId: permission.id,
+            })),
+          });
+        }
+
+        // Retornar el usuario con permisos
+        return await prisma.user.findUnique({
+          where: { id: created.id },
+          include: {
+            permissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        });
       });
 
+      if (!result) {
+        throw new Error('Failed to create user with permissions');
+      }
+
       this.logger.info(
-        { createdUser: { ...created, email: '***', password: '***' } },
-        'User created successfully',
+        {
+          createdUser: { ...result, email: '***', password: '***' },
+          assignedPermissions: result.permissions.length,
+        },
+        'User created successfully with role permissions',
       );
 
-      // Descifrar email antes de mapear a entidad de dominio
-      return this.mapToDomainWithoutPermissions(created);
+      return this.mapToDomain(result);
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         uniqueConstraint: 'User with this email or userName already exists',
@@ -232,16 +279,10 @@ export class UserPrismaAdapter implements UserRepository {
     // Descifrar el email antes de mapear a la entidad de dominio
     const decryptedEmail = this.cryptoService.decrypt(user.email);
 
-    // Mapear permisos anidados a la estructura que espera UserEntity
-    const permissions: UserPermissionWithDetails[] = user.permissions.map((userPermission) => ({
-      id: userPermission.id,
-      userId: userPermission.userId,
-      permissionId: userPermission.permissionId,
-      grantedAt: userPermission.grantedAt,
-      code: userPermission.permission.name, // Usar el name del Permission como code
-      name: userPermission.permission.name,
-      description: userPermission.permission.description,
-    }));
+    // Mapear permisos a nombres simples para optimizar JWT payload
+    const permissions: string[] = user.permissions.map(
+      (userPermission) => userPermission.permission.name,
+    );
 
     return UserEntity.toDomain({
       ...user,

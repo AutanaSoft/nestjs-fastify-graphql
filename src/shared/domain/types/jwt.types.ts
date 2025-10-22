@@ -1,9 +1,16 @@
 import { UserEntity } from '@/modules/users/domain/entities';
 import { JwtTempTokenType } from '../enums';
 
+/**
+ * Tipo que representa un usuario sin información sensible para el JWT.
+ *
+ * Omite el password por razones de seguridad en el payload del token.
+ */
+export type JwtUserPayload = Omit<UserEntity, 'password'>;
+
 export interface JwtPayload {
   sub: string;
-  user: UserEntity;
+  user: JwtUserPayload;
   iat?: number;
   exp?: number;
 }

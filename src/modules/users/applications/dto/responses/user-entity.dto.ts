@@ -18,6 +18,9 @@ export class UserEntityDto {
   @Field(() => UserRole, { description: 'Role of the user' })
   role: UserRole;
 
+  @Field(() => [String], { description: 'List of permissions assigned to the user' })
+  permissions: string[];
+
   @Field(() => Date, { description: 'Date when the user was created' })
   createdAt: Date;
 

@@ -36,9 +36,13 @@ export class JwtTokenService {
   async generateAccessToken(user: UserEntity): Promise<JwtTokenResult> {
     this.logger.info({ method: 'generateAccessToken', userId: user.id });
 
+    // Crear una copia del usuario sin el password por seguridad
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...userWithoutPassword } = user;
+
     const tokenPayload: JwtPayload = {
       sub: user.id,
-      user,
+      user: userWithoutPassword,
     };
 
     return this.generateToken(tokenPayload, this.config.expiresIn);
@@ -66,9 +70,13 @@ export class JwtTokenService {
     try {
       const expiresIn = this.getTempTokenExpiration(type);
 
+      // Crear una copia del usuario sin el password por seguridad
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password, ...userWithoutPassword } = user;
+
       const payload: TempTokenPayload = {
         sub,
-        user,
+        user: userWithoutPassword,
         type,
       };
 

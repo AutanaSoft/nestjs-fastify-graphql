@@ -65,8 +65,8 @@ export class PermissionsGuard implements CanActivate {
       throw new InsufficientPermissionsError(requiredPermissions);
     }
 
-    // Obtener permisos del usuario desde la entidad (ya incluye permisos frescos de la base de datos)
-    const userPermissions: string[] = user.permissions.map((permission) => permission.code);
+    // Obtener permisos del usuario desde la entidad (ya es string[] optimizado para JWT)
+    const userPermissions: string[] = user.permissions;
 
     // Determinar si la operación es sobre recursos propios
     const args: Record<string, unknown> = ctx.getArgs();
