@@ -99,7 +99,39 @@ Create only when necessary for core functionality:
 
 # Commit Message Guidelines
 
-This project validates commit messages with @commitlint/config-conventional plus a few extra rules defined in `commitlint.config.js`. Below you’ll find what is strictly enforced vs. recommended best practices.
+This project validates commit messages with @commitlint/config-conventional plus a few extra rules defined in `commitlint.config.js`. Below you'll find what is strictly enforced vs. recommended best practices.
+
+## Git Operations Policy
+
+**IMPORTANT**: Do NOT perform the following git operations unless explicitly requested by the developer:
+
+- Creating commits (`git commit`)
+- Pushing changes to remote (`git push`)
+- Creating pull requests
+- Merging branches
+- Creating or deleting branches
+
+**When to create commits**: Only when the developer explicitly asks with phrases like:
+
+- "Create a commit"
+- "Make a commit"
+- "Commit these changes"
+- "Can we commit this?"
+
+**When to push**: Only when explicitly requested with phrases like:
+
+- "Push the changes"
+- "Push to remote"
+- "Can you push this?"
+
+**Commit message approval process**:
+
+1. Always show the proposed commit message to the developer BEFORE creating the commit
+2. Wait for explicit approval from the developer
+3. If changes are requested, update the message accordingly
+4. Only proceed with the commit after receiving approval
+
+Always wait for explicit approval before performing any git operations that affect the repository history or remote state.
 
 ## Required format (enforced)
 
