@@ -1,6 +1,12 @@
 import { SharedModule } from '@/shared/shared.module';
 import { Module } from '@nestjs/common';
 
+import {
+  AssignPermissionsUseCase,
+  FindAllPermissionsUseCase,
+  FindUserPermissionsUseCase,
+  RevokePermissionsUseCase,
+} from './application/use-cases';
 import { PERMISSION_REPOSITORY } from './domain/repositories';
 import { PermissionMatcherService } from './domain/services';
 import { PermissionPrismaAdapter } from './infrastructure/adapters';
@@ -28,6 +34,11 @@ import { PermissionsGuard } from './infrastructure/guards';
     },
     PermissionMatcherService,
     PermissionsGuard,
+    // Use cases
+    AssignPermissionsUseCase,
+    RevokePermissionsUseCase,
+    FindAllPermissionsUseCase,
+    FindUserPermissionsUseCase,
   ],
 })
 export class PermissionsModule {}
