@@ -2,6 +2,7 @@ import { UserEntity } from '@/modules/users/domain/entities';
 import { FastifyContext, GraphQLContext } from '@/shared/domain/types';
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { GqlExecutionContext } from '@nestjs/graphql';
+import { UserPermission } from '@prisma/client';
 
 /**
  * Decorador de parámetro que extrae el usuario autenticado del contexto de la petición.
@@ -24,18 +25,27 @@ import { GqlExecutionContext } from '@nestjs/graphql';
  * @see GraphQLContext
  */
 export const CurrentUser = createParamDecorator(
-  (data: unknown, context: ExecutionContext): UserEntity => {
+  (
+    data: unknown,
+    context: ExecutionContext,
+  ): UserEntity & {
+    permissions?: UserPermission[];
+  } => {
     // Determinar si estamos en un contexto HTTP o GraphQL
     const contextType = context.getType();
 
     if (contextType === 'http') {
       // Contexto HTTP: extraer usuario directamente del request
       const request = context.switchToHttp().getRequest<FastifyContext['request']>();
-      return request.user as UserEntity;
+      return request.user as UserEntity & {
+        permissions?: UserPermission[];
+      };
     }
 
     // Contexto GraphQL: extraer usuario del contexto GraphQL
     const ctx = GqlExecutionContext.create(context);
-    return ctx.getContext<GraphQLContext>().req.user as UserEntity;
+    return ctx.getContext<GraphQLContext>().req.user as UserEntity & {
+      permissions?: UserPermission[];
+    };
   },
 );

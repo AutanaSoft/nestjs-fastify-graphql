@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { SharedModule } from '@/shared/shared.module';
+import { PermissionsModule } from '../permissions/permissions.module';
 import { UsersModule } from '../users/users.module';
 import {
   RefreshAccessTokenUseCase,
@@ -34,7 +35,7 @@ import { JwtStrategy } from './infrastructure/strategies';
  * @public
  */
 @Module({
-  imports: [SharedModule, UsersModule],
+  imports: [SharedModule, PermissionsModule, UsersModule],
   providers: [
     // Resolvers
     AuthResolver,
