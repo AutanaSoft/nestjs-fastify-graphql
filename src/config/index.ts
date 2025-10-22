@@ -4,7 +4,6 @@ export {
   createGraphQLModuleOptions,
   default as graphqlConfig,
   type GraphQLConfig,
-  type GraphQLContext,
 } from './graphql.config';
 export { default as helmetConfig } from './helmet.config';
 export {

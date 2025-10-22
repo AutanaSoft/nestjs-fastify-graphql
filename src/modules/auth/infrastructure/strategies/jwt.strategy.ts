@@ -5,29 +5,34 @@ import { JwtPayload } from '@/shared/domain/types';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
-import { Logger } from 'nestjs-pino';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 /**
- * Estrategia de autenticación JWT para Passport.
+ * Estrategia de autenticación JWT basada en Passport.
  *
- * Esta estrategia valida tokens JWT y extrae la información del usuario desde el payload del token.
- * Se integra con Passport para proporcionar autenticación automática en rutas protegidas.
+ * Implementa la validación de tokens JWT para proteger rutas y recursos.
+ * Verifica la firma, expiración y estructura del payload del token,
+ * extrayendo la información del usuario autenticado.
  *
- * Siguiendo las mejores prácticas de NestJS, esta estrategia:
- * - Valida tokens usando la configuración JWT compartida
- * - Extrae tokens del header Authorization Bearer
- * - Retorna la entidad de usuario para uso en el pipeline de requests
- * - Maneja errores de validación de tokens apropiadamente
- *
- * @public
+ * @remarks
+ * Esta estrategia se configura automáticamente con los parámetros del
+ * archivo de configuración JWT (secreto, emisor, audiencia).
+ * Extrae el token del header Authorization como Bearer token.
  */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
+  /**
+   * Crea una instancia de la estrategia JWT.
+   *
+   * @param config - Configuración JWT tipada que incluye secreto, emisor y audiencia
+   * @param logger - Logger de Pino para registrar eventos de autenticación
+   */
   constructor(
     @Inject(jwtConfig.KEY)
     private readonly config: ConfigType<typeof jwtConfig>,
-    private readonly logger: Logger,
+    @InjectPinoLogger(JwtStrategy.name)
+    private readonly logger: PinoLogger,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -36,25 +41,23 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       issuer: config.issuer,
       audience: config.audience,
     });
-
-    this.logger.log('JwtStrategy initialized');
   }
 
   /**
-   * Valida el payload del JWT y retorna la entidad de usuario.
+   * Valida el payload del token JWT y retorna la entidad del usuario.
    *
-   * Este método es llamado por Passport después de que la firma del JWT es verificada.
-   * Valida la estructura del payload y retorna el usuario para adjuntarlo al request.
+   * Verifica la estructura del payload del token JWT decodificado,
+   * asegurando que contenga los campos requeridos (sub y user).
    *
-   * @param payload - El payload decodificado del JWT.
-   * @returns La entidad de usuario para adjuntar al request.
-   * @throws InvalidTokenDomainException cuando el payload es inválido.
-   * @throws TokenExpiredDomainException cuando el token ha expirado.
-   *
-   * @public
+   * @param payload - Payload del token JWT decodificado que contiene
+   *                  la información del usuario y el subject (sub)
+   * @returns Entidad del usuario extraída del payload
+   * @throws {InvalidTokenDomainException} Si el payload no tiene la estructura esperada
+   *                                       o si ocurre un error durante la validación
+   * @throws {TokenExpiredDomainException} Si el token ha expirado
    */
   validate(payload: JwtPayload): UserEntity {
-    this.logger.log({
+    this.logger.debug({
       method: 'validate',
       userId: payload.sub,
       username: payload.user?.userName,

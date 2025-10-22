@@ -9,9 +9,12 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 /**
- * Servicio JWT para manejar operaciones genéricas de tokens JWT.
- * Este servicio puede ser reutilizado en diferentes módulos que necesiten funcionalidad JWT.
- * Se enfoca únicamente en la generación y validación de tokens JWT, no en lógica de negocio.
+ * Servicio para la generación y validación de tokens JWT.
+ *
+ * Proporciona funcionalidad para crear tokens de acceso y tokens temporales
+ * (refresh, reset password, forgot password), así como para validar tokens existentes.
+ *
+ * @public
  */
 @Injectable()
 export class JwtTokenService {
@@ -23,12 +26,12 @@ export class JwtTokenService {
     private readonly logger: PinoLogger,
   ) {}
 
-  // Métodos públicos
-
   /**
-   * Genera un access token JWT para el usuario dado.
-   * @param user Entidad del usuario conteniendo su información.
-   * @returns Promise que resuelve al string del access token JWT firmado.
+   * Genera un token de acceso JWT para un usuario autenticado.
+   *
+   * @param user - Entidad del usuario para el cual se genera el token
+   * @returns Token JWT firmado como string
+   * @throws Error si falla la generación del token
    */
   async generateAccessToken(user: UserEntity): Promise<string> {
     this.logger.info({ method: 'generateAccessToken', userId: user.id });
@@ -42,11 +45,16 @@ export class JwtTokenService {
   }
 
   /**
-   * Genera un token JWT temporal para acciones específicas (reset de contraseña, verificación de email, etc.).
-   * @param sub Identificador único para el token (UUID para validación en base de datos).
-   * @param user Entidad del usuario para quien se genera el token.
-   * @param type Tipo de token temporal siendo generado.
-   * @returns Promise que resuelve al string del token JWT temporal firmado.
+   * Genera un token temporal JWT según el tipo especificado.
+   *
+   * Los tipos de tokens temporales incluyen: refresh token, reset password
+   * y forgot password. Cada tipo tiene su propia configuración de expiración.
+   *
+   * @param sub - Identificador del sujeto del token (típicamente user ID o email)
+   * @param user - Entidad del usuario asociada al token
+   * @param type - Tipo de token temporal a generar
+   * @returns Token JWT temporal firmado como string
+   * @throws Error si falla la generación del token
    */
   async generateTempToken(sub: string, user: UserEntity, type: JwtTempTokenType): Promise<string> {
     this.logger.info({ method: 'generateTempToken' });
@@ -68,11 +76,15 @@ export class JwtTokenService {
   }
 
   /**
-   * Valida y verifica un token JWT.
-   * @param token String del token JWT a validar.
-   * @returns Promise que resuelve al payload JWT validado.
-   * @throws TokenExpiredDomainException cuando el token ha expirado.
-   * @throws InvalidTokenDomainException cuando el token es inválido o malformado.
+   * Valida un token JWT y extrae su payload.
+   *
+   * Verifica la firma, expiración, emisor y audiencia del token.
+   *
+   * @typeParam T - Tipo del payload esperado, por defecto JwtPayload
+   * @param token - Token JWT a validar
+   * @returns Payload del token validado
+   * @throws TokenExpiredDomainException si el token ha expirado
+   * @throws InvalidTokenDomainException si el token es inválido o la verificación falla
    */
   async validateToken<T extends object = JwtPayload>(token: string): Promise<T> {
     this.logger.info({ method: 'validateToken' });
@@ -98,16 +110,14 @@ export class JwtTokenService {
     }
   }
 
-  // Métodos privados
-
   /**
-   * Genera un token JWT con el payload y opciones especificadas.
-   * Este es un método genérico usado internamente por otros métodos de generación de tokens.
-   * @param payload El payload a incluir en el token.
-   * @param expiresIn Tiempo de expiración para el token (ej: '15m', '1h', '7d').
-   * @param tokenType Tipo de token siendo generado (para propósitos de logging).
-   * @returns Promise que resuelve al string del token JWT firmado.
-   * @private
+   * Genera un token JWT con el payload y configuración especificados.
+   *
+   * @param payload - Datos a incluir en el token (JwtPayload o TempTokenPayload)
+   * @param expiresIn - Tiempo de expiración del token
+   * @param tokenType - Descripción del tipo de token para logging
+   * @returns Token JWT firmado como string
+   * @throws Error si falla la generación del token
    */
   private async generateToken(
     payload: JwtPayload | TempTokenPayload,
@@ -132,10 +142,10 @@ export class JwtTokenService {
   }
 
   /**
-   * Método auxiliar para obtener el tiempo de expiración de tokens temporales basado en el tipo.
-   * @param type Tipo de token temporal.
-   * @returns String del tiempo de expiración (ej: '15m', '1h', '7d').
-   * @private
+   * Obtiene el tiempo de expiración configurado para un tipo de token temporal.
+   *
+   * @param type - Tipo de token temporal
+   * @returns Tiempo de expiración como string (ej: '15m', '1h', '7d')
    */
   private getTempTokenExpiration(type: JwtTempTokenType): string {
     switch (type) {

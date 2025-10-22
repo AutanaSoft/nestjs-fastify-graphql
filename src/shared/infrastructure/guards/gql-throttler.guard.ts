@@ -1,4 +1,4 @@
-import { GraphQLContext } from '@/config';
+import { GraphQLContext } from '@/shared/domain/types';
 import { ExecutionContext, Injectable } from '@nestjs/common';
 import { GqlContextType, GqlExecutionContext } from '@nestjs/graphql';
 import { ThrottlerGuard } from '@nestjs/throttler';

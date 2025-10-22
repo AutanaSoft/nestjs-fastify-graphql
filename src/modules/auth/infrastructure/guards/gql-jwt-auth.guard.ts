@@ -1,35 +1,31 @@
+import { GraphQLContext } from '@/shared/domain/types';
 import { ExecutionContext, Injectable } from '@nestjs/common';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { AuthGuard } from '@nestjs/passport';
 
 /**
- * Guard de autenticación JWT para GraphQL.
+ * Guard de autenticación JWT para resolvers de GraphQL.
  *
- * Este guard extiende el JwtAuthGuard para trabajar específicamente con contextos de GraphQL.
- * Adapta el contexto del request desde el contexto de ejecución de GraphQL para que funcione
- * con las estrategias de Passport.
+ * Extiende el AuthGuard de Passport con estrategia 'jwt' y adapta
+ * la extracción de la petición desde el contexto de GraphQL.
  *
- * A diferencia del JwtAuthGuard estándar que funciona con requests HTTP,
- * este guard extrae el request desde el contexto de GraphQL apropiadamente.
+ * @remarks
+ * Este guard se utiliza para proteger resolvers que requieren autenticación.
+ * Extrae y valida el token JWT desde los headers de la petición HTTP
+ * subyacente en el contexto de GraphQL.
+ *
  * @public
  */
 @Injectable()
 export class GqlJwtAuthGuard extends AuthGuard('jwt') {
   /**
-   * Extrae el objeto request del contexto de ejecución de GraphQL.
+   * Extrae la petición HTTP del contexto de ejecución de GraphQL.
    *
-   * Este método sobrescribe el comportamiento por defecto para trabajar con contextos GraphQL.
-   * Extrae el request HTTP desde el contexto de GraphQL para que Passport pueda
-   * acceder a los headers, tokens de autenticación, etc.
-   *
-   * @param context - El contexto de ejecución (GraphQL en este caso).
-   * @returns El objeto request HTTP.
-   *
-   * @public
+   * @param context - Contexto de ejecución de NestJS
+   * @returns La petición HTTP del contexto de GraphQL
    */
-  getRequest(context: ExecutionContext): Request {
+  getRequest(context: ExecutionContext): GraphQLContext['req'] {
     const ctx = GqlExecutionContext.create(context);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
-    return ctx.getContext().req;
+    return ctx.getContext<GraphQLContext>().req;
   }
 }

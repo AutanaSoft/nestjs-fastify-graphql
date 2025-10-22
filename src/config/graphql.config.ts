@@ -1,3 +1,4 @@
+import { GraphQLContext } from '@/shared/domain/types';
 import { ApolloServerPluginLandingPageDisabled } from '@apollo/server/plugin/disabled';
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
 import { ApolloDriverConfig } from '@nestjs/apollo';
@@ -20,14 +21,6 @@ export type GraphQLConfig = {
   playground: boolean;
   useGlobalPrefix: boolean;
 };
-
-/**
- * @public Contexto compartido entre resolvers de GraphQL con acceso a la solicitud y respuesta.
- */
-export interface GraphQLContext {
-  readonly req: FastifyRequest;
-  readonly res: FastifyReply;
-}
 
 /**
  * @public Factoría de configuración que expone los parámetros del módulo GraphQL.
