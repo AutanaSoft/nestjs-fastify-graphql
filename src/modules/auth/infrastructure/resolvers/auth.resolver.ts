@@ -1,6 +1,6 @@
 import { SessionType } from '@/shared/domain/enums';
 import type { GraphQLContext } from '@/shared/domain/types';
-import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Args, Context, Mutation, Resolver } from '@nestjs/graphql';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import {
   AuthCredentialsDto,
@@ -19,6 +19,7 @@ import {
 import {
   RefreshAccessTokenUseCase,
   RevokeRefreshTokenUseCase,
+  SignInUseCase,
   SignUpUseCase,
 } from '../../application/use-cases';
 
@@ -27,6 +28,7 @@ export class AuthResolver {
   constructor(
     @InjectPinoLogger(AuthResolver.name) private readonly logger: PinoLogger,
     private readonly signUpUseCase: SignUpUseCase,
+    private readonly signInUseCase: SignInUseCase,
     private readonly refreshAccessTokenUseCase: RefreshAccessTokenUseCase,
     private readonly revokeRefreshTokenUseCase: RevokeRefreshTokenUseCase,
   ) {}
@@ -49,13 +51,22 @@ export class AuthResolver {
     return credentials;
   }
 
-  @Query(() => AuthCredentialsDto, { name: 'signIn', description: 'Sign in an existing user' })
-  signIn(@Args() params: SignInArgsDto): AuthCredentialsDto {
-    this.logger.assign({ resolver: 'signIn', params });
+  @Mutation(() => AuthCredentialsDto, { name: 'signIn', description: 'Sign in an existing user' })
+  async signIn(
+    @Args() params: SignInArgsDto,
+    @Context() context: GraphQLContext,
+  ): Promise<AuthCredentialsDto> {
+    this.logger.assign({ resolver: 'signIn' });
     this.logger.info('Sign in request received');
-    // Implement sign-in logic here
+
+    const credentials = await this.signInUseCase.execute(params, {
+      userAgent: context.req.headers['user-agent'],
+      ipAddress: context.req.ip,
+      type: SessionType.WEB,
+    });
+
     this.logger.info('User signed in successfully');
-    return new AuthCredentialsDto();
+    return credentials;
   }
 
   @Mutation(() => AuthCredentialsDto, { name: 'refreshToken', description: 'Refresh auth token' })

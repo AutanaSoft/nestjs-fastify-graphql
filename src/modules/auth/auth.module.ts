@@ -5,6 +5,7 @@ import { UsersModule } from '../users/users.module';
 import {
   RefreshAccessTokenUseCase,
   RevokeRefreshTokenUseCase,
+  SignInUseCase,
   SignUpUseCase,
 } from './application/use-cases';
 import { SESSION_REPOSITORY } from './domain/repositories';
@@ -39,6 +40,7 @@ import { JwtStrategy } from './infrastructure/strategies';
     AuthResolver,
     // Use Cases
     SignUpUseCase,
+    SignInUseCase,
     RefreshAccessTokenUseCase,
     RevokeRefreshTokenUseCase,
     // Domain Services
