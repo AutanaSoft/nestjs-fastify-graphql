@@ -49,7 +49,7 @@ export async function seedAdminUser(prisma: PrismaClient): Promise<void> {
     }
 
     // Validar que todos los permisos necesarios existan antes de crear el usuario
-    const adminPermissionNames = ROLE_PERMISSIONS.ADMIN;
+    const adminPermissionNames = ROLE_PERMISSIONS.SUPER_ADMIN;
     const permissions = await prisma.permission.findMany({
       where: {
         name: {

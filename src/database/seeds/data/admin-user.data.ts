@@ -1,4 +1,16 @@
-import { Prisma, UserRole, UserStatus } from '@prisma/client';
+import { UserRole, UserStatus } from '@prisma/client';
+
+/**
+ * Datos básicos del usuario administrador (sin campos cifrados).
+ */
+export interface AdminUserData {
+  email: string;
+  userName: string;
+  password: string;
+  role: UserRole;
+  status: UserStatus;
+  emailVerified: Date;
+}
 
 /**
  * Credenciales por defecto del administrador.
@@ -18,7 +30,7 @@ const DEFAULT_ADMIN_CREDENTIALS = {
  * @returns Datos del usuario administrador.
  * @throws Error si se intentan usar credenciales por defecto en producción.
  */
-export function getAdminUserData(): Prisma.UserCreateInput {
+export function getAdminUserData(): AdminUserData {
   const isProduction = process.env.NODE_ENV === 'production';
   const adminEmail = process.env.APP_ADMIN_EMAIL;
   const adminPassword = process.env.APP_ADMIN_PASSWORD;
@@ -48,7 +60,7 @@ export function getAdminUserData(): Prisma.UserCreateInput {
     email,
     userName: email.split('@')[0], // Extraer username del email
     password,
-    role: UserRole.ADMIN,
+    role: UserRole.SUPER_ADMIN, // Super administrador con acceso total
     status: UserStatus.ACTIVE,
     emailVerified: new Date(), // Admin pre-verificado
   };

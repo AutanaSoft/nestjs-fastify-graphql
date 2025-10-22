@@ -7,7 +7,11 @@ enum SessionType {
 
 /// Roles asignados a los usuarios
 enum UserRole {
+  SUPER_ADMIN
   ADMIN
+  MANAGER
+  MODERATOR
+  SUPPORT
   USER
   GUEST
 }
