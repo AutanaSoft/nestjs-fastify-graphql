@@ -1,6 +1,6 @@
 export { default as appConfig, CORRELATION_ID_HEADER, type AppConfig } from './app.config';
 export { default as corsConfig } from './cors.config';
-export { default as cryptoConfig, type CryptoConfig } from './crypto.config';
+export { default as cryptoConfig, type CryptoConfig, cryptoConfigFactory } from './crypto.config';
 export {
   createGraphQLModuleOptions,
   default as graphqlConfig,

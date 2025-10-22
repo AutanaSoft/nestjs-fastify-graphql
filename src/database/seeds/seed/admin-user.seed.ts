@@ -1,7 +1,11 @@
 import { PrismaClient } from '@prisma/client';
-import { getAdminUserData, getAdminCredentialsWarning } from '../data/admin-user.data';
-import { ROLE_PERMISSIONS } from '../data/permissions.data';
+import type { PinoLogger } from 'nestjs-pino';
+
+import { cryptoConfigFactory } from '@/config';
 import { HashUtils } from '@/shared/applications/utils';
+import { CryptoService } from '@/shared/infrastructure/services';
+import { getAdminCredentialsWarning, getAdminUserData } from '../data/admin-user.data';
+import { ROLE_PERMISSIONS } from '../data/permissions.data';
 
 /**
  * Seed del usuario administrador inicial.
@@ -18,9 +22,25 @@ export async function seedAdminUser(prisma: PrismaClient): Promise<void> {
     // Obtener datos del administrador (valida credenciales en producción)
     const adminData = getAdminUserData();
 
-    // Verificar si ya existe el usuario admin
+    // Inicializar CryptoService para cifrado de email
+    const config = cryptoConfigFactory();
+
+    // Mock logger para el contexto de seed (sin dependencias de NestJS)
+    const mockLogger = {
+      info: () => {},
+      debug: () => {},
+      error: () => {},
+      warn: () => {},
+      fatal: () => {},
+      trace: () => {},
+      assign: () => {},
+    } as unknown as PinoLogger;
+
+    const cryptoService = new CryptoService(config, mockLogger);
+
+    // Verificar si ya existe el usuario admin (buscar por userName)
     const existingAdmin = await prisma.user.findUnique({
-      where: { email: adminData.email },
+      where: { userName: adminData.userName },
     });
 
     if (existingAdmin) {
@@ -53,13 +73,18 @@ export async function seedAdminUser(prisma: PrismaClient): Promise<void> {
     // Hashear la contraseña
     const hashedPassword = await HashUtils.hashPassword(adminData.password);
 
+    // Cifrar el email y generar su hash para búsqueda
+    const encryptedEmail = cryptoService.encrypt(adminData.email);
+    const emailHash = cryptoService.hash(adminData.email);
+
     // Crear el usuario y asignar permisos en una transacción
     // Esto garantiza que ambas operaciones se completen o ninguna
     await prisma.$transaction(async (tx) => {
       // Crear el usuario administrador
       const adminUser = await tx.user.create({
         data: {
-          email: adminData.email,
+          email: encryptedEmail,
+          emailHash: emailHash,
           userName: adminData.userName,
           password: hashedPassword,
           role: adminData.role,
@@ -68,7 +93,7 @@ export async function seedAdminUser(prisma: PrismaClient): Promise<void> {
         },
       });
 
-      console.log(`✅ Admin user created: ${adminUser.email} (ID: ${adminUser.id})`);
+      console.log(`✅ Admin user created: ${adminData.email} (ID: ${adminUser.id})`);
 
       // Preparar datos de permisos
       const userPermissions = permissions.map((permission) => ({

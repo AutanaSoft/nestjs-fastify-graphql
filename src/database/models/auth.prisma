@@ -23,7 +23,8 @@ enum UserStatus {
 /// Entidad de usuario del sistema
 model User {
   id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email         String     @unique @db.VarChar(64)
+  email         String     @db.VarChar(255)
+  emailHash     String     @unique @map("email_hash") @db.VarChar(64)
   userName      String     @unique @map("user_name") @db.VarChar(20)
   password      String     @db.VarChar(64)
   status        UserStatus @default(REGISTERED)
@@ -36,7 +37,7 @@ model User {
   sessions    Session[]
   permissions UserPermission[]
 
-  @@index([email])
+  @@index([emailHash])
   @@index([userName])
   @@index([createdAt])
   @@map("users")

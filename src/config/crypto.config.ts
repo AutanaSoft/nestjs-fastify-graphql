@@ -1,64 +1,92 @@
 import { registerAs } from '@nestjs/config';
 
 /**
- * Configuración del sistema de criptografía.
+ * Configuración de criptografía para cifrado y descifrado de datos sensibles.
  *
- * Define los parámetros necesarios para cifrado/descifrado AES-256-GCM
- * y derivación de claves con scrypt.
+ * @remarks
+ * Esta configuración utiliza el algoritmo AES-256-GCM para proporcionar cifrado
+ * autenticado con datos asociados. Todas las propiedades son de solo lectura para
+ * garantizar la inmutabilidad de la configuración en tiempo de ejecución.
  *
  * @public
  */
 export type CryptoConfig = {
   /**
-   * Secreto principal para derivación de claves.
-   * Debe tener al menos 32 caracteres.
+   * Clave secreta utilizada como base para derivar la clave de cifrado.
    *
    * @remarks
-   * Este valor debe ser único por entorno y nunca debe ser commiteado.
-   * Generar con: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+   * Debe tener al menos 32 caracteres de longitud. Se recomienda generar un
+   * valor aleatorio de 64 caracteres hexadecimales utilizando el comando:
+   * `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
    */
   readonly secret: string;
 
   /**
-   * Salt para derivación de clave con scrypt.
-   * Debe tener al menos 16 caracteres.
+   * Salt utilizado en la derivación de la clave de cifrado mediante PBKDF2.
    *
    * @remarks
-   * Este valor debe ser único por entorno y nunca debe ser commiteado.
-   * Generar con: `node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"`
+   * Debe tener al menos 16 caracteres de longitud. Se recomienda generar un
+   * valor aleatorio de 32 caracteres hexadecimales utilizando el comando:
+   * `node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"`
    */
   readonly salt: string;
 
   /**
-   * Algoritmo de cifrado utilizado.
-   * Por defecto: AES-256-GCM (Galois/Counter Mode).
+   * Algoritmo de cifrado a utilizar.
+   *
+   * @remarks
+   * Valor por defecto: 'aes-256-gcm'. Este algoritmo proporciona cifrado
+   * autenticado con integridad de datos incorporada.
    */
   readonly algorithm: string;
 
   /**
-   * Longitud del vector de inicialización (IV) en bytes.
-   * Por defecto: 16 bytes para AES-256-GCM.
+   * Longitud en bytes del vector de inicialización (IV).
+   *
+   * @remarks
+   * Valor por defecto: 16 bytes. El IV es un valor aleatorio que se genera
+   * para cada operación de cifrado y garantiza que el mismo texto plano
+   * produzca diferentes textos cifrados.
    */
   readonly ivLength: number;
 
   /**
-   * Longitud de la clave de cifrado en bytes.
-   * Por defecto: 32 bytes para AES-256.
+   * Longitud en bytes de la clave de cifrado derivada.
+   *
+   * @remarks
+   * Valor por defecto: 32 bytes (256 bits). Esta es la longitud requerida
+   * para el algoritmo AES-256.
    */
   readonly keyLength: number;
 };
 
 /**
- * Factory de configuración de criptografía.
+ * Factory que construye y valida la configuración de criptografía.
  *
- * Carga y valida las variables de entorno necesarias para el sistema de cifrado.
+ * @returns Objeto de configuración de criptografía validado y tipado.
  *
- * @returns Configuración de criptografía validada
- * @throws Error si las variables de entorno no están configuradas correctamente
+ * @throws {Error}
+ * Lanza error si ENCRYPTION_SECRET no está definido en las variables de entorno.
+ *
+ * @throws {Error}
+ * Lanza error si ENCRYPTION_SECRET tiene menos de 32 caracteres.
+ *
+ * @throws {Error}
+ * Lanza error si ENCRYPTION_SALT no está definido en las variables de entorno.
+ *
+ * @throws {Error}
+ * Lanza error si ENCRYPTION_SALT tiene menos de 16 caracteres.
+ *
+ * @remarks
+ * Esta función se ejecuta durante el inicio de la aplicación y falla rápidamente
+ * si las variables de entorno requeridas no están configuradas correctamente.
+ * No proporciona valores por defecto para secret y salt por razones de seguridad.
+ * Los valores de algorithm, ivLength y keyLength están codificados para garantizar
+ * la consistencia del cifrado en toda la aplicación.
  *
  * @public
  */
-export default registerAs('crypto', (): CryptoConfig => {
+export const cryptoConfigFactory = (): CryptoConfig => {
   const secret = process.env.ENCRYPTION_SECRET;
   const salt = process.env.ENCRYPTION_SALT;
 
@@ -89,4 +117,19 @@ export default registerAs('crypto', (): CryptoConfig => {
     ivLength: 16,
     keyLength: 32,
   };
-});
+};
+
+/**
+ * Configuración de criptografía registrada para inyección de dependencias.
+ *
+ * @remarks
+ * Este configurador registrado utiliza el namespace 'crypto' y puede ser
+ * inyectado en servicios usando `@Inject(cryptoConfigFactory.KEY)` o
+ * accedido mediante `ConfigService.get<CryptoConfig>('crypto')`.
+ *
+ * @see CryptoConfig
+ * @see cryptoConfigFactory
+ *
+ * @public
+ */
+export default registerAs('crypto', (): CryptoConfig => cryptoConfigFactory());
