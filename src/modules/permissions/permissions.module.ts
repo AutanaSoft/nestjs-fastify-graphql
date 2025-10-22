@@ -11,6 +11,7 @@ import { PERMISSION_REPOSITORY } from './domain/repositories';
 import { PermissionMatcherService } from './domain/services';
 import { PermissionPrismaAdapter } from './infrastructure/adapters';
 import { PermissionsGuard } from './infrastructure/guards';
+import { PermissionsResolver } from './infrastructure/resolvers';
 
 /**
  * Módulo de permisos del sistema.
@@ -39,6 +40,8 @@ import { PermissionsGuard } from './infrastructure/guards';
     RevokePermissionsUseCase,
     FindAllPermissionsUseCase,
     FindUserPermissionsUseCase,
+    // Resolvers
+    PermissionsResolver,
   ],
 })
 export class PermissionsModule {}

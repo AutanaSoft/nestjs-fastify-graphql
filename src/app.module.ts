@@ -22,6 +22,7 @@ import { AppController } from './app.controller';
 import { AppResolver } from './app.resolver';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
+import { PermissionsModule } from './modules/permissions/permissions.module';
 import { UsersModule } from './modules/users/users.module';
 import { GraphQLExceptionFilter } from './shared/infrastructure/filters';
 import { GqlThrottlerGuard } from './shared/infrastructure/guards/gql-throttler.guard';
@@ -53,6 +54,7 @@ import { SharedModule } from './shared/shared.module';
     SharedModule,
     AuthModule,
     UsersModule,
+    PermissionsModule,
   ],
   controllers: [AppController],
   providers: [
