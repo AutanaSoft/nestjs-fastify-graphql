@@ -2,7 +2,7 @@ import { jwtConfig } from '@/config';
 import { UserEntity } from '@/modules/users/domain/entities';
 import { JwtTempTokenType } from '@/shared/domain/enums';
 import { InvalidTokenDomainException, TokenExpiredDomainException } from '@/shared/domain/errors';
-import { JwtPayload, TempTokenPayload } from '@/shared/domain/types';
+import { JwtPayload, JwtTokenResult, TempTokenPayload } from '@/shared/domain/types';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -30,10 +30,10 @@ export class JwtTokenService {
    * Genera un token de acceso JWT para un usuario autenticado.
    *
    * @param user - Entidad del usuario para el cual se genera el token
-   * @returns Token JWT firmado como string
+   * @returns Objeto con el token generado y sus fechas de creación y expiración
    * @throws Error si falla la generación del token
    */
-  async generateAccessToken(user: UserEntity): Promise<string> {
+  async generateAccessToken(user: UserEntity): Promise<JwtTokenResult> {
     this.logger.info({ method: 'generateAccessToken', userId: user.id });
 
     const tokenPayload: JwtPayload = {
@@ -41,7 +41,7 @@ export class JwtTokenService {
       user,
     };
 
-    return this.generateToken(tokenPayload, this.config.expiresIn, 'access token');
+    return this.generateToken(tokenPayload, this.config.expiresIn);
   }
 
   /**
@@ -53,10 +53,14 @@ export class JwtTokenService {
    * @param sub - Identificador del sujeto del token (típicamente user ID o email)
    * @param user - Entidad del usuario asociada al token
    * @param type - Tipo de token temporal a generar
-   * @returns Token JWT temporal firmado como string
+   * @returns Objeto con el token generado y sus fechas de creación y expiración
    * @throws Error si falla la generación del token
    */
-  async generateTempToken(sub: string, user: UserEntity, type: JwtTempTokenType): Promise<string> {
+  async generateTempToken(
+    sub: string,
+    user: UserEntity,
+    type: JwtTempTokenType,
+  ): Promise<JwtTokenResult> {
     this.logger.info({ method: 'generateTempToken' });
 
     try {
@@ -68,7 +72,7 @@ export class JwtTokenService {
         type,
       };
 
-      return this.generateToken(payload, expiresIn, 'temporary token');
+      return this.generateToken(payload, expiresIn);
     } catch (error: unknown) {
       this.logger.error({ error }, 'Failed to generate temporary token');
       throw new Error('Failed to generate temporary token');
@@ -115,26 +119,44 @@ export class JwtTokenService {
    *
    * @param payload - Datos a incluir en el token (JwtPayload o TempTokenPayload)
    * @param expiresIn - Tiempo de expiración del token
-   * @param tokenType - Descripción del tipo de token para logging
-   * @returns Token JWT firmado como string
+   * @returns Objeto con el token generado y metadata temporal
    * @throws Error si falla la generación del token
    */
   private async generateToken(
     payload: JwtPayload | TempTokenPayload,
     expiresIn: string | number,
-    tokenType: string,
-  ): Promise<string> {
+  ): Promise<JwtTokenResult> {
+    // Determinar tipo de token para logging
+    let tokenType = 'Access token';
+
+    // Si el payload tiene campo 'type', es un token temporal
+    if ('type' in payload) {
+      tokenType = `Temp token (${payload.type})`;
+    }
+
     this.logger.info({ method: 'generateToken', tokenType });
 
     try {
+      // Fecha de creación del token
+      const createdAt = new Date();
+
+      // Generar el token
       const token = await this.jwtService.signAsync(payload, {
         expiresIn: expiresIn as never,
         issuer: this.config.issuer,
         audience: this.config.audience,
       });
 
+      // Calcular fecha de expiración
+      const expiredAt = this.calculateExpirationDate(expiresIn, createdAt);
+
       this.logger.info(`${tokenType} generated successfully`);
-      return token;
+
+      return {
+        token,
+        createdAt,
+        expiredAt,
+      };
     } catch (error: unknown) {
       this.logger.error({ error }, `Failed to generate ${tokenType}`);
       throw new Error(`Failed to generate ${tokenType}`);
@@ -158,5 +180,55 @@ export class JwtTokenService {
       default:
         return '15m'; // Fallback por defecto
     }
+  }
+
+  /**
+   * Calcula la fecha de expiración basándose en la duración y fecha de creación.
+   *
+   * @param duration - Duración del token (ej: '1h', '7d', '60m', o número en segundos)
+   * @param createdAt - Fecha de creación del token
+   * @returns Fecha de expiración calculada
+   */
+  private calculateExpirationDate(duration: string | number, createdAt: Date): Date {
+    let milliseconds: number;
+
+    if (typeof duration === 'number') {
+      // Si es número, se asume que son segundos
+      milliseconds = duration * 1000;
+    } else {
+      // Si es string, parsear el formato (ej: '1h', '7d', '60m')
+      milliseconds = this.parseDuration(duration);
+    }
+
+    return new Date(createdAt.getTime() + milliseconds);
+  }
+
+  /**
+   * Parsea una duración en formato string a milisegundos.
+   *
+   * Soporta formatos: 's' (segundos), 'm' (minutos), 'h' (horas), 'd' (días)
+   *
+   * @param duration - Duración en formato string (ej: '7d', '24h', '60m')
+   * @returns Duración en milisegundos
+   */
+  private parseDuration(duration: string): number {
+    const match = duration.match(/^(\d+)([smhd])$/);
+
+    if (!match) {
+      this.logger.warn({ duration }, 'Invalid duration format, defaulting to 1 hour');
+      return 60 * 60 * 1000; // 1 hora por defecto
+    }
+
+    const value = parseInt(match[1], 10);
+    const unit = match[2];
+
+    const multipliers: Record<string, number> = {
+      s: 1000, // segundos
+      m: 60 * 1000, // minutos
+      h: 60 * 60 * 1000, // horas
+      d: 24 * 60 * 60 * 1000, // días
+    };
+
+    return value * multipliers[unit];
   }
 }

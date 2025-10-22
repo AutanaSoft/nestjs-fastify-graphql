@@ -23,7 +23,7 @@ export type CreateSessionData = {
 /**
  * Resultado de la operación de refresh token.
  *
- * Incluye el nuevo access token y el nuevo refresh token.
+ * Incluye el nuevo access token y el nuevo refresh token con metadata temporal.
  *
  * @public
  */
@@ -32,8 +32,10 @@ export type RefreshTokenResult = {
   accessToken: string;
   /** Nuevo refresh token opaco */
   refreshToken: string;
-  /** Fecha de expiración del access token */
-  expiresIn: string;
+  /** Fecha en que se creó el access token */
+  createdAt: Date;
+  /** Fecha en que expira el access token */
+  expiredAt: Date;
 };
 
 /**

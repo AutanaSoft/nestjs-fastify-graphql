@@ -74,12 +74,7 @@ export class AuthResolver {
 
     this.logger.info('Auth token refreshed successfully');
 
-    return {
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-      createdAt: new Date(),
-      expiredAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hora
-    };
+    return result;
   }
 
   @Mutation(() => ForgotPasswordResponseDto, {

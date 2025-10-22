@@ -58,7 +58,11 @@ export class SignUpUseCase {
     this.logger.info({ userId: user.id }, 'User created successfully');
 
     // Generar access token
-    const accessToken = await this.jwtTokenService.generateAccessToken(user);
+    const {
+      token: accessToken,
+      createdAt,
+      expiredAt,
+    } = await this.jwtTokenService.generateAccessToken(user);
 
     // Crear sesión con refresh token
     const sessionContext: RefreshTokenContext = {
@@ -77,14 +81,11 @@ export class SignUpUseCase {
       'Session created with refresh token',
     );
 
-    // Calcular fecha de expiración (1 hora)
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-
     return {
       accessToken,
       refreshToken,
-      createdAt: new Date(),
-      expiredAt: expiresAt,
+      createdAt,
+      expiredAt,
     };
   }
 }

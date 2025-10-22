@@ -1,7 +1,7 @@
-import { UserRepository } from '@/modules/users/domain/repository';
+import { USER_REPOSITORY, UserRepository } from '@/modules/users/domain/repository';
 import { JwtTokenService } from '@/shared/applications/services';
 import { NotFoundError } from '@/shared/domain/errors';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { RefreshTokenService } from '../../domain/services';
 import type { RefreshTokenContext, RefreshTokenResult } from '../../domain/types';
@@ -19,6 +19,7 @@ export class RefreshAccessTokenUseCase {
   constructor(
     private readonly refreshTokenService: RefreshTokenService,
     private readonly jwtTokenService: JwtTokenService,
+    @Inject(USER_REPOSITORY)
     private readonly userRepository: UserRepository,
     @InjectPinoLogger(RefreshAccessTokenUseCase.name)
     private readonly logger: PinoLogger,
@@ -55,7 +56,11 @@ export class RefreshAccessTokenUseCase {
     }
 
     // 3. Generar nuevo access token
-    const accessToken = await this.jwtTokenService.generateAccessToken(user);
+    const {
+      token: accessToken,
+      createdAt,
+      expiredAt,
+    } = await this.jwtTokenService.generateAccessToken(user);
 
     // 4. Rotar el refresh token (revocar actual y crear nuevo)
     const [newRefreshToken] = await this.refreshTokenService.rotateToken(currentSession, context);
@@ -69,7 +74,8 @@ export class RefreshAccessTokenUseCase {
     return {
       accessToken,
       refreshToken: newRefreshToken,
-      expiresIn: '1h', // TODO: Obtener de configuración
+      createdAt,
+      expiredAt,
     };
   }
 }
