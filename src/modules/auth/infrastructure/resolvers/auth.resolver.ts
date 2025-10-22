@@ -1,4 +1,6 @@
-import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { SessionType } from '@/shared/domain/enums';
+import type { GraphQLContext } from '@/shared/domain/types';
+import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import {
   AuthCredentialsDto,
@@ -7,18 +9,26 @@ import {
   RefreshTokenArgsDto,
   ResetPasswordArgsDto,
   ResetPasswordResponseDto,
+  RevokeRefreshTokenArgsDto,
+  RevokeRefreshTokenResponseDto,
   SignInArgsDto,
   SignUpArgsDto,
   VerifyEmailArgsDto,
   VerifyEmailResponseDto,
 } from '../../application/dto';
-import { SignUpUseCase } from '../../application/use-cases';
+import {
+  RefreshAccessTokenUseCase,
+  RevokeRefreshTokenUseCase,
+  SignUpUseCase,
+} from '../../application/use-cases';
 
 @Resolver()
 export class AuthResolver {
   constructor(
     @InjectPinoLogger(AuthResolver.name) private readonly logger: PinoLogger,
     private readonly signUpUseCase: SignUpUseCase,
+    private readonly refreshAccessTokenUseCase: RefreshAccessTokenUseCase,
+    private readonly revokeRefreshTokenUseCase: RevokeRefreshTokenUseCase,
   ) {}
 
   @Mutation(() => AuthCredentialsDto, { name: 'signUp', description: 'Sign up a new user' })
@@ -40,12 +50,27 @@ export class AuthResolver {
   }
 
   @Mutation(() => AuthCredentialsDto, { name: 'refreshToken', description: 'Refresh auth token' })
-  refreshToken(@Args() params: RefreshTokenArgsDto): AuthCredentialsDto {
-    this.logger.assign({ resolver: 'refreshToken', params });
+  async refreshToken(
+    @Args() params: RefreshTokenArgsDto,
+    @Context() context: GraphQLContext,
+  ): Promise<AuthCredentialsDto> {
+    this.logger.assign({ resolver: 'refreshToken' });
     this.logger.info('Refresh token request received');
-    // Implement token refresh logic here
+
+    const result = await this.refreshAccessTokenUseCase.execute(params.input.refreshToken, {
+      userAgent: context.req.headers['user-agent'],
+      ipAddress: context.req.ip,
+      type: SessionType.WEB, // TODO: Detectar tipo desde el contexto
+    });
+
     this.logger.info('Auth token refreshed successfully');
-    return new AuthCredentialsDto();
+
+    return {
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      createdAt: new Date(),
+      expiredAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hora
+    };
   }
 
   @Mutation(() => ForgotPasswordResponseDto, {
@@ -82,5 +107,22 @@ export class AuthResolver {
     // Implement email verification logic here
     this.logger.info('User email verified successfully');
     return new VerifyEmailResponseDto();
+  }
+
+  @Mutation(() => RevokeRefreshTokenResponseDto, {
+    name: 'revokeRefreshToken',
+    description: 'Revoke a refresh token (logout)',
+  })
+  async revokeRefreshToken(
+    @Args() params: RevokeRefreshTokenArgsDto,
+  ): Promise<RevokeRefreshTokenResponseDto> {
+    this.logger.assign({ resolver: 'revokeRefreshToken' });
+    this.logger.info('Revoke refresh token request received');
+
+    const success = await this.revokeRefreshTokenUseCase.execute(params.input.refreshToken);
+
+    this.logger.info('Refresh token revoked successfully');
+
+    return { success };
   }
 }

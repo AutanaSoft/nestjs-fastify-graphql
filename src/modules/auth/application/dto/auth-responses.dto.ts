@@ -55,3 +55,10 @@ export class ResetPasswordResponseDto extends AuthSuccessResponseDto {}
  */
 @ObjectType()
 export class VerifyEmailResponseDto extends AuthSuccessResponseDto {}
+
+/**
+ * DTO de respuesta para la revocación de refresh token.
+ * Indica si el token fue revocado exitosamente.
+ */
+@ObjectType()
+export class RevokeRefreshTokenResponseDto extends AuthSuccessResponseDto {}

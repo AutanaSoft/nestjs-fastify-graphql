@@ -5,6 +5,7 @@ import {
   ForgotPasswordInputDto,
   RefreshTokenInputDto,
   ResetPasswordInputDto,
+  RevokeRefreshTokenInputDto,
   SignInInputDto,
   SignUpInputDto,
   VerifyEmailInputDto,
@@ -92,4 +93,18 @@ export class VerifyEmailArgsDto {
   @ValidateNested()
   @Type(() => VerifyEmailInputDto)
   input!: VerifyEmailInputDto;
+}
+
+/**
+ * Args DTO para revocar un refresh token (logout).
+ */
+@ArgsType()
+export class RevokeRefreshTokenArgsDto {
+  @Field(() => RevokeRefreshTokenInputDto, {
+    description: 'Input data for token revocation',
+    nullable: false,
+  })
+  @ValidateNested()
+  @Type(() => RevokeRefreshTokenInputDto)
+  input!: RevokeRefreshTokenInputDto;
 }

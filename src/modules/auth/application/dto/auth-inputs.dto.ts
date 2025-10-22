@@ -154,3 +154,22 @@ export class VerifyEmailInputDto {
   @IsNotEmpty({ message: 'Token is required' })
   token!: string;
 }
+
+/**
+ * DTO de entrada para revocar un refresh token (logout).
+ *
+ * Permite invalidar un refresh token específico, cerrando la sesión
+ * asociada y evitando su reutilización.
+ */
+@InputType({ description: 'Input data for token revocation' })
+export class RevokeRefreshTokenInputDto {
+  /**
+   * Token de actualización a revocar.
+   *
+   * Debe ser un refresh token válido y activo.
+   */
+  @Field(() => String, { description: 'Refresh token to revoke', nullable: false })
+  @IsString({ message: 'Refresh token must be a string' })
+  @IsNotEmpty({ message: 'Refresh token is required' })
+  refreshToken!: string;
+}
