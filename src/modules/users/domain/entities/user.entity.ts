@@ -1,5 +1,6 @@
 import { User } from '@prisma/client';
 import { UserRole, UserStatus } from '../enums/user.enum';
+import { UserPermissionWithDetails } from '../types';
 
 /**
  * Datos necesarios para reconstruir una entidad User desde persistencia.
@@ -16,6 +17,7 @@ export type UserEntityData = {
   readonly status: UserStatus;
   readonly role: UserRole;
   readonly emailVerified: Date | null;
+  readonly permissions: UserPermissionWithDetails[];
   readonly createdAt: Date;
   readonly updatedAt: Date;
 };
@@ -41,6 +43,7 @@ export class UserEntity {
   readonly status: UserStatus;
   readonly role: UserRole;
   readonly emailVerified: Date | null;
+  readonly permissions: UserPermissionWithDetails[];
   readonly createdAt: Date;
   readonly updatedAt: Date;
 
@@ -61,24 +64,25 @@ export class UserEntity {
     this.status = data.status;
     this.role = data.role;
     this.emailVerified = data.emailVerified;
+    this.permissions = data.permissions;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
   }
 
   /**
-   * Crea una instancia de UserEntity a partir de un modelo de Prisma.
+   * Crea una instancia de UserEntity a partir de un modelo de Prisma con permisos.
    *
    * Reconstruye la entidad de dominio mapeando los datos desde el modelo de
    * persistencia, garantizando que los enums y tipos sean correctos.
    *
-   * @param user - Modelo de usuario de Prisma
+   * @param user - Modelo de usuario de Prisma con relación de permisos incluida
    * @returns Nueva instancia inmutable de UserEntity
    *
    * @remarks
    * Este método es utilizado por los adaptadores de infraestructura para
    * transformar los datos de la base de datos en entidades de dominio puras.
    */
-  static toDomain(user: User): UserEntity {
+  static toDomain(user: User & { permissions: UserPermissionWithDetails[] }): UserEntity {
     return new UserEntity({
       id: user.id,
       email: user.email,
@@ -87,21 +91,24 @@ export class UserEntity {
       status: this.mapStatusToDomain(user.status),
       role: this.mapRoleToDomain(user.role),
       emailVerified: user.emailVerified,
+      permissions: user.permissions,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     });
   }
 
   /**
-   * Convierte un array de modelos de Prisma en entidades de dominio.
+   * Convierte un array de modelos de Prisma con permisos en entidades de dominio.
    *
    * Aplica la transformación `toDomain` a cada elemento del array, facilitando
    * la conversión de listas de resultados de persistencia.
    *
-   * @param prismaUsers - Array de modelos de usuario de Prisma
+   * @param prismaUsers - Array de modelos de usuario de Prisma con permisos incluidos
    * @returns Array de entidades de dominio UserEntity
    */
-  static toDomainList(prismaUsers: User[]): UserEntity[] {
+  static toDomainList(
+    prismaUsers: (User & { permissions: UserPermissionWithDetails[] })[],
+  ): UserEntity[] {
     return prismaUsers.map((user) => this.toDomain(user));
   }
 

@@ -1,12 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, User } from '@prisma/client';
+import { Prisma, User, UserPermission, Permission } from '@prisma/client';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 import { HandlerOrmErrorsService, PrismaService } from '@/shared/applications/services';
 import { CryptoService } from '@/shared/infrastructure/services';
 import { UserEntity } from '../../domain/entities';
 import { UserRepository } from '../../domain/repository';
-import { UserCreateType, UserUpdateType } from '../../domain/types';
+import { UserCreateType, UserUpdateType, UserPermissionWithDetails } from '../../domain/types';
+
+// Tipo para User con permisos anidados
+type UserWithPermissions = User & {
+  permissions: (UserPermission & {
+    permission: Permission;
+  })[];
+};
 
 @Injectable()
 /**
@@ -64,7 +71,7 @@ export class UserPrismaAdapter implements UserRepository {
       );
 
       // Descifrar email antes de mapear a entidad de dominio
-      return this.mapToDomain(created);
+      return this.mapToDomainWithoutPermissions(created);
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         uniqueConstraint: 'User with this email or userName already exists',
@@ -111,7 +118,7 @@ export class UserPrismaAdapter implements UserRepository {
       );
 
       // Descifrar email antes de mapear a entidad de dominio
-      return this.mapToDomain(updated);
+      return this.mapToDomainWithoutPermissions(updated);
     } catch (err) {
       return this.handlerOrmErrorsService.handleError(err, {
         uniqueConstraint: 'User with this email or username already exists',
@@ -133,6 +140,13 @@ export class UserPrismaAdapter implements UserRepository {
     try {
       const user = await this.prisma.user.findUnique({
         where: { id },
+        include: {
+          permissions: {
+            include: {
+              permission: true,
+            },
+          },
+        },
       });
 
       return user ? this.mapToDomain(user) : null;
@@ -159,6 +173,13 @@ export class UserPrismaAdapter implements UserRepository {
 
       const user = await this.prisma.user.findUnique({
         where: { emailHash },
+        include: {
+          permissions: {
+            include: {
+              permission: true,
+            },
+          },
+        },
       });
 
       return user ? this.mapToDomain(user) : null;
@@ -179,6 +200,13 @@ export class UserPrismaAdapter implements UserRepository {
   async findAll(): Promise<UserEntity[]> {
     try {
       const users = await this.prisma.user.findMany({
+        include: {
+          permissions: {
+            include: {
+              permission: true,
+            },
+          },
+        },
         orderBy: {
           createdAt: 'desc',
         },
@@ -196,17 +224,46 @@ export class UserPrismaAdapter implements UserRepository {
 
   /**
    * Mapea un registro de Prisma a una entidad de dominio descifrando el email.
-   * @param user Registro de usuario de Prisma.
+   * @param user Registro de usuario de Prisma con permisos incluidos.
    * @returns Entidad de dominio con el email descifrado.
    * @private
    */
-  private mapToDomain(user: User): UserEntity {
+  private mapToDomain(user: UserWithPermissions): UserEntity {
+    // Descifrar el email antes de mapear a la entidad de dominio
+    const decryptedEmail = this.cryptoService.decrypt(user.email);
+
+    // Mapear permisos anidados a la estructura que espera UserEntity
+    const permissions: UserPermissionWithDetails[] = user.permissions.map((userPermission) => ({
+      id: userPermission.id,
+      userId: userPermission.userId,
+      permissionId: userPermission.permissionId,
+      grantedAt: userPermission.grantedAt,
+      code: userPermission.permission.name, // Usar el name del Permission como code
+      name: userPermission.permission.name,
+      description: userPermission.permission.description,
+    }));
+
+    return UserEntity.toDomain({
+      ...user,
+      email: decryptedEmail,
+      permissions,
+    });
+  }
+
+  /**
+   * Mapea un registro de Prisma sin permisos a una entidad de dominio con permisos vacíos.
+   * @param user Registro de usuario de Prisma sin permisos.
+   * @returns Entidad de dominio con el email descifrado y permisos vacíos.
+   * @private
+   */
+  private mapToDomainWithoutPermissions(user: User): UserEntity {
     // Descifrar el email antes de mapear a la entidad de dominio
     const decryptedEmail = this.cryptoService.decrypt(user.email);
 
     return UserEntity.toDomain({
       ...user,
       email: decryptedEmail,
+      permissions: [], // Array vacío para operaciones create/update
     });
   }
 }

@@ -65,9 +65,8 @@ export class PermissionsGuard implements CanActivate {
       throw new InsufficientPermissionsError(requiredPermissions);
     }
 
-    // TODO: Obtener permisos del usuario (rol base + permisos adicionales)
-    // Por ahora, usaremos un array vacío como placeholder
-    const userPermissions: string[] = [];
+    // Obtener permisos del usuario desde la entidad (ya incluye permisos frescos de la base de datos)
+    const userPermissions: string[] = user.permissions.map((permission) => permission.code);
 
     // Determinar si la operación es sobre recursos propios
     const args: Record<string, unknown> = ctx.getArgs();
