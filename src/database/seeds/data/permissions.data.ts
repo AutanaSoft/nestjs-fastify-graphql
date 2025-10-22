@@ -9,69 +9,111 @@ export interface Permission {
 /**
  * Permisos iniciales del sistema.
  *
- * Formato de nombres: `resource:action`
+ * Formato de nombres: `resource:action:scope`
  * - resource: Entidad o recurso del sistema (user, permission, session, etc.)
- * - action: Acción sobre el recurso (read, write, delete, manage)
+ * - action: Acción sobre el recurso (read, create, update, delete, manage)
+ * - scope: Alcance del permiso (own, all) - opcional
+ *
+ * Jerarquía de alcances:
+ * - own: Opera solo sobre recursos propios del usuario
+ * - all: Opera sobre recursos de cualquier usuario
  *
  * Jerarquía de acciones:
  * - read: Ver y listar recursos
- * - write: Crear y actualizar recursos
+ * - create: Crear nuevos recursos
+ * - update: Modificar recursos existentes
  * - delete: Eliminar recursos
- * - manage: Control total (incluye read, write y delete)
+ * - manage: Control total (incluye todas las acciones anteriores)
  */
 export const INITIAL_PERMISSIONS = [
-  // Permisos de usuarios
+  // === PERMISOS DE USUARIOS ===
+  // Lectura
   {
-    name: 'user:read',
-    description: 'View and list users',
+    name: 'user:read:own',
+    description: 'View own user profile',
   },
   {
-    name: 'user:write',
-    description: 'Create and update users',
+    name: 'user:read:all',
+    description: 'View all users',
+  },
+  // Creación
+  {
+    name: 'user:create',
+    description: 'Create new users',
+  },
+  // Actualización
+  {
+    name: 'user:update:own',
+    description: 'Update own user profile',
   },
   {
-    name: 'user:delete',
-    description: 'Delete users',
+    name: 'user:update:all',
+    description: 'Update any user',
   },
+  // Eliminación
+  {
+    name: 'user:delete:own',
+    description: 'Delete own account',
+  },
+  {
+    name: 'user:delete:all',
+    description: 'Delete any user',
+  },
+  // Gestión completa
   {
     name: 'user:manage',
-    description: 'Full control over users (includes all user permissions)',
+    description: 'Full user management (includes all user:* permissions)',
   },
-  // Permisos de permisos
+
+  // === PERMISOS DE SESIONES ===
+  // Lectura
+  {
+    name: 'session:read:own',
+    description: 'View own active sessions',
+  },
+  {
+    name: 'session:read:all',
+    description: 'View all user sessions',
+  },
+  // Creación
+  {
+    name: 'session:create',
+    description: 'Create sessions (login)',
+  },
+  // Eliminación
+  {
+    name: 'session:delete:own',
+    description: 'Revoke own sessions (logout)',
+  },
+  {
+    name: 'session:delete:all',
+    description: 'Revoke any user sessions',
+  },
+  // Gestión completa
+  {
+    name: 'session:manage',
+    description: 'Full session management (includes all session:* permissions)',
+  },
+
+  // === PERMISOS DE PERMISOS ===
   {
     name: 'permission:read',
-    description: 'View and list permissions',
+    description: 'View available permissions',
   },
   {
-    name: 'permission:write',
-    description: 'Create and update permissions',
+    name: 'permission:assign',
+    description: 'Assign permissions to users',
   },
   {
-    name: 'permission:delete',
-    description: 'Delete permissions',
+    name: 'permission:revoke',
+    description: 'Revoke permissions from users',
   },
   {
     name: 'permission:manage',
-    description: 'Full control over permissions',
+    description: 'Full permission management',
   },
-  // Permisos de sesiones
-  {
-    name: 'session:read',
-    description: 'View active sessions',
-  },
-  {
-    name: 'session:write',
-    description: 'Create sessions (login)',
-  },
-  {
-    name: 'session:delete',
-    description: 'Revoke sessions (logout)',
-  },
-  {
-    name: 'session:manage',
-    description: 'Full control over sessions',
-  },
-  // Permisos de configuración
+
+  // === PERMISOS DE CONFIGURACIÓN ===
   {
     name: 'settings:read',
     description: 'View system settings',
@@ -80,7 +122,8 @@ export const INITIAL_PERMISSIONS = [
     name: 'settings:manage',
     description: 'Modify system settings',
   },
-  // Permisos de administración
+
+  // === PERMISOS DE ADMINISTRACIÓN ===
   {
     name: 'admin:access',
     description: 'Access admin panel',
@@ -89,7 +132,8 @@ export const INITIAL_PERMISSIONS = [
     name: 'admin:audit',
     description: 'View audit logs and system activity',
   },
-  // Permisos de sistema
+
+  // === PERMISOS DE SISTEMA ===
   {
     name: 'system:backup',
     description: 'Create system backups',
@@ -118,32 +162,41 @@ export type PermissionName = (typeof INITIAL_PERMISSIONS)[number]['name'];
  *
  * @remarks
  * - ADMIN: Acceso total a todas las funcionalidades del sistema
- * - USER: Permisos básicos de lectura y gestión de sesiones propias
+ * - USER: Permisos básicos de lectura y gestión de recursos propios
  * - GUEST: Permisos mínimos, solo puede iniciar sesión
  */
 export const ROLE_PERMISSIONS = {
   ADMIN: [
-    // Acceso total
+    // Gestión total de usuarios
     'user:manage',
+    // Gestión total de permisos
     'permission:manage',
+    // Gestión total de sesiones
     'session:manage',
+    // Configuración del sistema
     'settings:manage',
+    // Acceso administrativo
     'admin:access',
     'admin:audit',
+    // Operaciones de sistema
     'system:backup',
     'system:restore',
     'system:monitor',
   ],
   USER: [
-    // Permisos básicos de lectura
-    'user:read',
-    'session:read',
-    'session:write',
-    'session:delete',
+    // Solo puede ver y modificar su propio perfil
+    'user:read:own',
+    'user:update:own',
+    // Puede gestionar sus propias sesiones
+    'session:read:own',
+    'session:create',
+    'session:delete:own',
+    // Puede ver permisos disponibles
+    'permission:read',
   ],
   GUEST: [
-    // Permisos mínimos
-    'session:write', // Solo login
+    // Solo puede iniciar sesión
+    'session:create',
   ],
 } as const satisfies Record<string, readonly PermissionName[]>;
 
