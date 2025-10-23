@@ -40,15 +40,16 @@ export class PermissionEntity {
    *
    * @remarks
    * Reglas de matching:
-   * - Coincidencia exacta: 'user:read:own' cubre 'user:read:own'
+   * - Coincidencia exacta: 'user:read' cubre 'user:read'
    * - Manage cubre todas las acciones: 'user:manage' cubre 'user:read:all', 'user:update:all', etc.
-   * - All no cubre own: 'user:read:all' NO cubre 'user:read:own' (son permisos diferentes)
+   * - El permiso básico NO cubre el administrativo: 'user:read' NO cubre 'user:read:all'
+   * - El permiso administrativo NO cubre el básico: 'user:read:all' NO cubre 'user:read'
    *
    * @example
    * ```typescript
    * const permission = PermissionEntity.toDomain({ name: 'user:manage', ... });
    * permission.covers('user:read:all'); // true
-   * permission.covers('user:update:own'); // true
+   * permission.covers('user:update'); // true
    * permission.covers('session:read:all'); // false
    * ```
    */

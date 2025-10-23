@@ -35,15 +35,19 @@ export interface RequiresPermissionsOptions {
  * Los permisos se verifican usando lógica OR por defecto (basta con tener uno).
  * Use requireAll: true para requerir todos los permisos especificados (lógica AND).
  *
- * El guard automáticamente verifica si el usuario está accediendo a su propio recurso
- * y ajusta la verificación entre permisos :own y :all según corresponda.
+ * El guard verifica que el usuario tenga los permisos especificados.
+ * La validación de propiedad de recursos se realiza en los casos de uso.
+ *
+ * Sistema de 2 niveles:
+ * - `resource:action` - Permiso básico (para recursos propios)
+ * - `resource:action:all` - Permiso administrativo (para todos los recursos)
  *
  * @example
  * ```typescript
- * // Requiere user:read:all o user:manage (lógica OR)
- * @RequiresPermissions(['user:read:all'])
- * @Query(() => [UserDto])
- * async findAllUsers() { ... }
+ * // Requiere user:read (lógica OR con manage)
+ * @RequiresPermissions(['user:read'])
+ * @Query(() => UserDto)
+ * async getMyProfile() { ... }
  *
  * // Requiere user:update:all Y permission:assign (lógica AND)
  * @RequiresPermissions(['user:update:all', 'permission:assign'], true)

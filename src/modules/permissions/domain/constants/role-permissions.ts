@@ -92,12 +92,12 @@ export const ROLE_PERMISSIONS = {
   ],
   USER: [
     // Solo puede ver y modificar su propio perfil
-    'user:read:own',
-    'user:update:own',
+    'user:read',
+    'user:update',
     // Puede gestionar sus propias sesiones
-    'session:read:own',
+    'session:read',
     'session:create',
-    'session:delete:own',
+    'session:delete',
     // Puede ver permisos disponibles
     'permission:read',
   ],

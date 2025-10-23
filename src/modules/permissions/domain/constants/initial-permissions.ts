@@ -9,21 +9,27 @@ export interface Permission {
 /**
  * Permisos iniciales del sistema.
  *
- * Formato de nombres: `resource:action:scope`
+ * Sistema de permisos de 2 niveles:
+ *
+ * Formato básico: `resource:action`
+ * - Implica acceso a recursos propios del usuario
+ * - La validación de propiedad se realiza en los casos de uso
+ * - Ejemplos: user:read, user:update, session:delete
+ *
+ * Formato administrativo: `resource:action:all`
+ * - Permite acceso a todos los recursos sin restricción de propiedad
+ * - Solo para roles administrativos
+ * - Ejemplos: user:read:all, user:update:all, session:delete:all
+ *
+ * Formato de gestión: `resource:manage`
+ * - Control total sobre el recurso (todas las acciones)
+ * - Nivel más alto de privilegios para un recurso específico
+ * - Ejemplos: user:manage, session:manage, permission:manage
+ *
+ * Componentes:
  * - resource: Entidad o recurso del sistema (user, permission, session, etc.)
  * - action: Acción sobre el recurso (read, create, update, delete, manage)
- * - scope: Alcance del permiso (own, all) - opcional
- *
- * Jerarquía de alcances:
- * - own: Opera solo sobre recursos propios del usuario
- * - all: Opera sobre recursos de cualquier usuario
- *
- * Jerarquía de acciones:
- * - read: Ver y listar recursos
- * - create: Crear nuevos recursos
- * - update: Modificar recursos existentes
- * - delete: Eliminar recursos
- * - manage: Control total (incluye todas las acciones anteriores)
+ * - scope: Alcance administrativo (all) - opcional, solo para acceso sin restricciones
  *
  * @public
  */
@@ -31,7 +37,7 @@ export const INITIAL_PERMISSIONS = [
   // === PERMISOS DE USUARIOS ===
   // Lectura
   {
-    name: 'user:read:own',
+    name: 'user:read',
     description: 'View own user profile',
   },
   {
@@ -45,7 +51,7 @@ export const INITIAL_PERMISSIONS = [
   },
   // Actualización
   {
-    name: 'user:update:own',
+    name: 'user:update',
     description: 'Update own user profile',
   },
   {
@@ -54,7 +60,7 @@ export const INITIAL_PERMISSIONS = [
   },
   // Eliminación
   {
-    name: 'user:delete:own',
+    name: 'user:delete',
     description: 'Delete own account',
   },
   {
@@ -70,7 +76,7 @@ export const INITIAL_PERMISSIONS = [
   // === PERMISOS DE SESIONES ===
   // Lectura
   {
-    name: 'session:read:own',
+    name: 'session:read',
     description: 'View own active sessions',
   },
   {
@@ -84,7 +90,7 @@ export const INITIAL_PERMISSIONS = [
   },
   // Eliminación
   {
-    name: 'session:delete:own',
+    name: 'session:delete',
     description: 'Revoke own sessions (logout)',
   },
   {
