@@ -136,4 +136,27 @@ export class UserEntity {
   private static mapRoleToDomain(role: User['role']): UserRole {
     return role as unknown as UserRole;
   }
+
+  /**
+   * Verifica si el usuario tiene un permiso específico.
+   *
+   * @param permission - Nombre del permiso a verificar (ej: 'user:update:all')
+   * @returns true si el usuario tiene el permiso, false en caso contrario
+   *
+   * @remarks
+   * Útil para validaciones condicionales en casos de uso, por ejemplo para
+   * verificar si el usuario tiene permisos administrativos (:all) antes de
+   * validar la propiedad de un recurso.
+   *
+   * @example
+   * ```typescript
+   * if (!currentUser.hasPermission('user:update:all')) {
+   *   // Usuario no tiene permiso :all, validar propiedad
+   *   this.ownershipService.validateOwnership(resource, currentUser, 'user');
+   * }
+   * ```
+   */
+  hasPermission(permission: string): boolean {
+    return this.permissions.includes(permission);
+  }
 }

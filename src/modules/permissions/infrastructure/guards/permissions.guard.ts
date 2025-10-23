@@ -18,8 +18,9 @@ import { PERMISSIONS_KEY, RequiresPermissionsOptions } from '../decorators';
  * tiene los permisos necesarios, considerando:
  * - Permisos del rol base del usuario
  * - Permisos adicionales asignados explícitamente
- * - Si la operación es sobre recursos propios (:own vs :all)
  * - Lógica OR (al menos uno) o AND (todos) según configuración
+ *
+ * La validación de propiedad de recursos se delega a los casos de uso.
  *
  * @public
  */
@@ -58,42 +59,23 @@ export class PermissionsGuard implements CanActivate {
     const graphqlContext = ctx.getContext<GraphQLContext>();
     const user = graphqlContext.req.user as UserEntity;
 
-    // Si no hay usuario autenticado, denegar acceso
-    // (esto no debería ocurrir si GqlJwtAuthGuard está antes)
-    if (!user) {
-      this.logger.warn('No authenticated user found in context');
-      throw new InsufficientPermissionsError(requiredPermissions);
-    }
-
     // Obtener permisos del usuario desde la entidad (ya es string[] optimizado para JWT)
     const userPermissions: string[] = user.permissions;
-
-    // Determinar si la operación es sobre recursos propios
-    const args: Record<string, unknown> = ctx.getArgs();
-    const isOwnResource = this.isOwnResource(user, args);
 
     this.logger.debug(
       {
         userId: user.id,
         requiredPermissions,
         requireAll,
-        isOwnResource,
+        userPermissions,
       },
       'Checking permissions',
     );
 
     // Verificar permisos usando la lógica apropiada
     const hasPermission = requireAll
-      ? this.permissionMatcher.hasAllPermissions(
-          userPermissions,
-          requiredPermissions,
-          isOwnResource,
-        )
-      : this.permissionMatcher.hasAnyPermission(
-          userPermissions,
-          requiredPermissions,
-          isOwnResource,
-        );
+      ? this.permissionMatcher.hasAllPermissions(userPermissions, requiredPermissions)
+      : this.permissionMatcher.hasAnyPermission(userPermissions, requiredPermissions);
 
     if (!hasPermission) {
       this.logger.warn(
@@ -108,48 +90,5 @@ export class PermissionsGuard implements CanActivate {
     }
 
     return true;
-  }
-
-  /**
-   * Determina si la operación es sobre un recurso propio del usuario.
-   *
-   * @param user - Usuario autenticado
-   * @param args - Argumentos del resolver
-   * @returns true si la operación es sobre recursos propios del usuario
-   *
-   * @remarks
-   * Verifica si los argumentos contienen un userId, id, o filter.userId
-   * que coincida con el ID del usuario autenticado.
-   *
-   * @private
-   */
-  private isOwnResource(user: UserEntity, args: Record<string, unknown>): boolean {
-    // Verificar si hay un userId en los argumentos directos
-    if (args.userId === user.id) {
-      return true;
-    }
-
-    // Verificar si hay un id en los argumentos que coincida con el userId
-    if (args.id === user.id) {
-      return true;
-    }
-
-    // Verificar si hay un filter.userId
-    if (args.filter && typeof args.filter === 'object') {
-      const filter = args.filter as Record<string, unknown>;
-      if (filter.userId === user.id || filter.id === user.id) {
-        return true;
-      }
-    }
-
-    // Verificar si hay un input.userId o input.id
-    if (args.input && typeof args.input === 'object') {
-      const input = args.input as Record<string, unknown>;
-      if (input.userId === user.id || input.id === user.id) {
-        return true;
-      }
-    }
-
-    return false;
   }
 }

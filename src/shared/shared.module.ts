@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+
 import { HandlerOrmErrorsService, JwtTokenService, PrismaService } from './applications/services';
 import { CryptoService } from './infrastructure/services';
 

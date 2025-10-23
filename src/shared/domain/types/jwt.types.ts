@@ -1,4 +1,4 @@
-import { UserEntity } from '@/modules/users/domain/entities';
+import { UserEntityData } from '@/modules/users/domain/entities';
 import { JwtTempTokenType } from '../enums';
 
 /**
@@ -6,7 +6,7 @@ import { JwtTempTokenType } from '../enums';
  *
  * Omite el password por razones de seguridad en el payload del token.
  */
-export type JwtUserPayload = Omit<UserEntity, 'password'>;
+export type JwtUserPayload = Omit<UserEntityData, 'password'>;
 
 export interface JwtPayload {
   sub: string;
