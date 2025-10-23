@@ -90,7 +90,8 @@ export class JwtTokenService {
   /**
    * Valida un token JWT y extrae su payload.
    *
-   * Verifica la firma, expiración, emisor y audiencia del token.
+   * Verifica la firma, expiración, emisor, audiencia y estructura del token.
+   * Aplica validación base común y validación específica según el tipo de token.
    *
    * @typeParam T - Tipo del payload esperado, por defecto JwtPayload
    * @param token - Token JWT a validar
@@ -107,6 +108,14 @@ export class JwtTokenService {
         issuer: this.config.issuer,
         audience: this.config.audience,
       });
+
+      // Validar estructura base del payload (común para todos los tipos)
+      this.validateBasePayloadStructure(payload);
+
+      // Validar estructura específica del tipo de token temporal
+      if (this.isTempTokenPayload(payload)) {
+        this.validateTempTokenType(payload);
+      }
 
       this.logger.debug('Token validated successfully');
       return payload;
@@ -238,5 +247,67 @@ export class JwtTokenService {
     };
 
     return value * multipliers[unit];
+  }
+
+  /**
+   * Verifica si el payload es de tipo TempTokenPayload.
+   *
+   * @param payload - Payload a verificar
+   * @returns true si es un TempTokenPayload, false si es otro tipo
+   */
+  private isTempTokenPayload(payload: unknown): payload is TempTokenPayload {
+    return typeof payload === 'object' && payload !== null && 'type' in payload;
+  }
+
+  /**
+   * Valida la estructura base de un payload JWT (campos comunes).
+   *
+   * @param payload - Payload JWT a validar
+   * @throws InvalidTokenDomainException si la estructura base es inválida
+   */
+  private validateBasePayloadStructure(payload: unknown): void {
+    if (typeof payload !== 'object' || payload === null) {
+      this.logger.warn('Invalid payload structure: payload must be an object');
+      throw new InvalidTokenDomainException();
+    }
+
+    const typedPayload = payload as Record<string, unknown>;
+
+    if (!typedPayload.sub || !typedPayload.user) {
+      this.logger.warn('Invalid payload structure: missing sub or user');
+      throw new InvalidTokenDomainException();
+    }
+
+    if (typeof typedPayload.sub !== 'string') {
+      this.logger.warn('Invalid payload structure: sub must be a string');
+      throw new InvalidTokenDomainException();
+    }
+
+    if (typeof typedPayload.user !== 'object' || typedPayload.user === null) {
+      this.logger.warn('Invalid payload structure: user must be an object');
+      throw new InvalidTokenDomainException();
+    }
+  }
+
+  /**
+   * Valida el tipo específico de un token temporal.
+   *
+   * @param payload - Payload de token temporal a validar
+   * @throws InvalidTokenDomainException si el tipo es inválido
+   */
+  private validateTempTokenType(payload: TempTokenPayload): void {
+    if (!payload.type) {
+      this.logger.warn('Invalid temp token payload structure: missing type');
+      throw new InvalidTokenDomainException();
+    }
+
+    // Validar que el tipo sea un valor válido del enum
+    if (!Object.values(JwtTempTokenType).includes(payload.type)) {
+      this.logger.warn(
+        { type: payload.type },
+        'Invalid temp token payload structure: invalid type',
+      );
+      throw new InvalidTokenDomainException();
+    }
   }
 }
