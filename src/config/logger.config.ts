@@ -38,21 +38,20 @@ const SENSITIVE_KEYS: readonly string[] = [
   '*.*.*.*.cookies',
 ];
 
+export const loggerConfigFactory = (): LoggerConfig => ({
+  isProduction: process.env.NODE_ENV === 'production',
+  logLevel: (process.env.LOG_LEVEL as LoggerConfig['logLevel']) ?? 'info',
+  logDir: process.env.LOG_DIR ?? join(process.cwd(), 'logs'),
+  logMaxSize: Number(process.env.LOG_MAX_SIZE) || 10,
+  logMaxFiles: Number(process.env.LOG_MAX_FILES) || 5,
+  logRotationFrequency: process.env.LOG_ROTATION_FREQUENCY || 'daily',
+});
+
 /**
  * Registra la configuración principal del logger bajo el espacio `loggerConfig`.
  * @returns Configuración tipada construida a partir de las variables de entorno.
  */
-export default registerAs(
-  'loggerConfig',
-  (): LoggerConfig => ({
-    isProduction: process.env.NODE_ENV === 'production',
-    logLevel: (process.env.LOG_LEVEL as LoggerConfig['logLevel']) ?? 'info',
-    logDir: process.env.LOG_DIR ?? join(process.cwd(), 'logs'),
-    logMaxSize: Number(process.env.LOG_MAX_SIZE) || 10,
-    logMaxFiles: Number(process.env.LOG_MAX_FILES) || 5,
-    logRotationFrequency: process.env.LOG_ROTATION_FREQUENCY || 'daily',
-  }),
-);
+export default registerAs('loggerConfig', (): LoggerConfig => loggerConfigFactory());
 
 /**
  * Traduce la configuración tipada en opciones para `nestjs-pino`.

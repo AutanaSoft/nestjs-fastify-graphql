@@ -4,5 +4,5 @@
 export enum JwtTempTokenType {
   FORGOT_PASSWORD = 'forgot_password',
   RESET_PASSWORD = 'reset_password',
-  REFRESH_TOKEN = 'refresh_token',
+  VERIFY_EMAIL = 'verify_email',
 }

@@ -1,17 +1,26 @@
 import { registerAs } from '@nestjs/config';
 import { seconds, ThrottlerModuleOptions } from '@nestjs/throttler';
 
+/**
+ * Configuración de rate limiting (throttler) para la aplicación.
+ *
+ * @property ttl - Tiempo de vida en milisegundos para el contador de solicitudes
+ * @property limit - Número máximo de solicitudes permitidas en el período ttl
+ */
 export type ThrottlerConfig = {
   ttl: number;
   limit: number;
 };
 
 /**
- * @public
- * @remarks Expone la configuración del throttler leyendo variables de entorno y aplicando TTL en segundos.
- * @returns Configuración tipada para el módulo de throttling.
+ * Genera la configuración del throttler a partir de variables de entorno.
+ *
+ * Lee las variables THROTTLER_TTL y THROTTLER_LIMIT, aplicando valores por
+ * defecto según el entorno (producción o desarrollo).
+ *
+ * @returns Configuración del throttler con ttl y limit
  */
-export default registerAs('throttlerConfig', (): ThrottlerConfig => {
+export const throttlerConfigFactory = (): ThrottlerConfig => {
   const isProduction = process.env.NODE_ENV === 'production';
   const _ttl = parseInt(process.env.THROTTLER_TTL || '60', 10);
 
@@ -19,13 +28,18 @@ export default registerAs('throttlerConfig', (): ThrottlerConfig => {
     ttl: seconds(_ttl),
     limit: parseInt(process.env.THROTTLER_LIMIT || (isProduction ? '100' : '150'), 10),
   };
-});
+};
+
+export default registerAs('throttlerConfig', (): ThrottlerConfig => throttlerConfigFactory());
 
 /**
- * @public
- * @remarks Construye las opciones del ThrottlerModule utilizando la configuración tipada.
- * @param config Configuración proveniente del registro de throttler.
- * @returns Opciones listas para registrar en ThrottlerModule.forRoot.
+ * Crea las opciones del módulo ThrottlerModule a partir de la configuración.
+ *
+ * Transforma la configuración de throttler en el formato requerido por
+ * el módulo de NestJS.
+ *
+ * @param config - Configuración del throttler
+ * @returns Opciones del módulo con el array de throttlers configurados
  */
 export const createThrottlerModuleOptions = (config: ThrottlerConfig): ThrottlerModuleOptions => ({
   throttlers: [

@@ -4,8 +4,7 @@ import { ValidationError as ClassValidatorError } from 'class-validator';
 import { GraphQLError } from 'graphql';
 
 /**
- * Describe los errores agrupados por campo devueltos por el pipe de validación.
- * @public
+ * Representa un elemento de error de validación con el campo afectado y sus mensajes.
  */
 interface ValidationPipeErrorItem {
   readonly field: string;
@@ -13,8 +12,10 @@ interface ValidationPipeErrorItem {
 }
 
 /**
- * Error GraphQL especializado para encapsular fallos de validación.
- * @public
+ * Error personalizado para validaciones de GraphQL que extiende GraphQLError.
+ * Contiene información detallada sobre los errores de validación encontrados.
+ *
+ * @throws {ValidationPipeError} Se lanza cuando la validación de datos falla
  */
 class ValidationPipeError extends GraphQLError {
   constructor(public readonly validationErrors: ValidationPipeErrorItem[]) {
@@ -28,15 +29,16 @@ class ValidationPipeError extends GraphQLError {
       },
     });
 
-    // Establece el prototipo explícitamente para conservar la cadena correcta
     Object.setPrototypeOf(this, ValidationPipeError.prototype);
   }
 }
 
 /**
- * Transforma un error de class-validator en la estructura utilizada por GraphQL.
- * @param error Error original emitido por class-validator.
- * @returns Lista de errores normalizados.
+ * Formatea recursivamente los errores de validación de class-validator.
+ * Procesa tanto restricciones directas como errores anidados en objetos hijos.
+ *
+ * @param error - Error de validación de class-validator
+ * @returns Array de elementos de error formateados con campo y mensajes
  */
 const formatValidationError = (error: ClassValidatorError): ValidationPipeErrorItem[] => {
   const errors: ValidationPipeErrorItem[] = [];
@@ -64,27 +66,35 @@ const formatValidationError = (error: ClassValidatorError): ValidationPipeErrorI
 };
 
 /**
- * Configuración estándar para el `ValidationPipe` global de la aplicación.
- * @returns Opciones del `ValidationPipe` alineadas con GraphQL.
+ * Genera la configuración del ValidationPipe para NestJS.
+ * Habilita transformación automática, whitelist y validación estricta de datos.
+ *
+ * @returns Opciones de configuración para el ValidationPipe
+ */
+export const validationPipeConfigFactory = (): ValidationPipeOptions => ({
+  transform: true,
+  whitelist: true,
+  forbidNonWhitelisted: true,
+  forbidUnknownValues: true,
+  stopAtFirstError: false,
+  transformOptions: {
+    enableImplicitConversion: true,
+  },
+  validationError: {
+    target: false,
+    value: false,
+  },
+  exceptionFactory: (validationErrors: ClassValidatorError[]) => {
+    const formattedErrors = validationErrors.flatMap(formatValidationError);
+    return new ValidationPipeError(formattedErrors);
+  },
+});
+
+/**
+ * Configuración del ValidationPipe registrada con el namespace 'validationPipeConfig'.
+ * Utiliza la factory para generar las opciones de validación centralizadas.
  */
 export default registerAs(
   'validationPipeConfig',
-  (): ValidationPipeOptions => ({
-    transform: true,
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    forbidUnknownValues: true,
-    stopAtFirstError: false,
-    transformOptions: {
-      enableImplicitConversion: true,
-    },
-    validationError: {
-      target: false,
-      value: false,
-    },
-    exceptionFactory: (validationErrors: ClassValidatorError[]) => {
-      const formattedErrors = validationErrors.flatMap(formatValidationError);
-      return new ValidationPipeError(formattedErrors);
-    },
-  }),
+  (): ValidationPipeOptions => validationPipeConfigFactory(),
 );

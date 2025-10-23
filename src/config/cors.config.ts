@@ -2,34 +2,12 @@ import { FastifyCorsOptions } from '@fastify/cors';
 import { registerAs } from '@nestjs/config';
 
 /**
- * Orígenes permitidos para CORS en desarrollo local.
- * @remarks
- * Estos orígenes se permiten automáticamente cuando NODE_ENV no es 'production'.
- * Incluye puertos comunes para aplicaciones frontend y herramientas de Apollo Studio.
- */
-export const DEV_CORS_ORIGINS: string[] = [
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://localhost:4200',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:3001',
-  'http://127.0.0.1:4200',
-  'https://studio.apollographql.com',
-  'https://sandbox.embed.apollographql.com',
-];
-
-/**
- * Tipo exportado para la configuración de CORS compatible con Fastify.
- * @remarks
- * Útil para inyección de dependencias usando `ConfigType<typeof corsConfig>`.
+ * Configuración de CORS para Fastify.
+ * Define los orígenes permitidos, métodos HTTP, encabezados y otras
+ * opciones de seguridad para las solicitudes entre orígenes.
  */
 export type CorsConfig = FastifyCorsOptions;
 
-/**
- * Cabeceras HTTP permitidas en solicitudes CORS.
- * @remarks
- * Incluye cabeceras estándar y la cabecera específica de Apollo Server.
- */
 const ALLOWED_HEADERS: string[] = [
   'Content-Type',
   'Authorization',
@@ -41,19 +19,14 @@ const ALLOWED_HEADERS: string[] = [
   'apollo-require-preflight',
 ];
 
-/**
- * Cabeceras HTTP expuestas en respuestas CORS.
- * @remarks
- * Estas cabeceras estarán disponibles para el cliente a través de JavaScript.
- * Útiles para paginación y metadatos de respuesta.
- */
 const EXPOSED_HEADERS: string[] = ['X-Total-Count', 'X-Page-Count', 'X-Current-Page', 'X-Per-Page'];
 
 /**
- * Obtiene los orígenes permitidos de producción desde variables de entorno.
- * @returns Array de orígenes validados para producción.
- * @remarks
- * Lee desde la variable CORS_ALLOWED_ORIGINS separada por comas.
+ * Obtiene la lista de orígenes permitidos para CORS en producción.
+ * Lee la variable de entorno CORS_ALLOWED_ORIGINS, separa por comas
+ * y filtra valores vacíos.
+ *
+ * @returns Array de URLs de orígenes permitidos
  */
 function getProdAllowedOrigins(): string[] {
   const originsEnv = process.env.CORS_ALLOWED_ORIGINS || '';
@@ -64,35 +37,51 @@ function getProdAllowedOrigins(): string[] {
 }
 
 /**
- * Crea la configuración completa de CORS para Fastify según el entorno.
- * @returns Opciones de CORS compatibles con @fastify/cors.
- * @remarks
- * En desarrollo permite todos los orígenes de DEV_CORS_ORIGINS.
- * En producción solo permite orígenes definidos en CORS_ALLOWED_ORIGINS.
- * Las credenciales están habilitadas por defecto (configurable vía CORS_CREDENTIALS).
+ * Obtiene la lista de métodos HTTP permitidos para CORS.
+ * Lee la variable de entorno CORS_ALLOWED_METHODS, separa por comas
+ * y filtra valores vacíos. Si no está definida, usa métodos por defecto.
+ *
+ * @returns Array de métodos HTTP permitidos
  */
-function createCorsConfig(): FastifyCorsOptions {
-  const isDevelopment = process.env.NODE_ENV !== 'production';
-  const prodOrigins = getProdAllowedOrigins();
-
-  return {
-    origin: isDevelopment ? true : prodOrigins.length > 0 ? prodOrigins : false,
-    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ALLOWED_HEADERS,
-    exposedHeaders: EXPOSED_HEADERS,
-    credentials: process.env.CORS_CREDENTIALS !== 'false',
-    maxAge: isDevelopment ? 86400 : 3600,
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
-  };
+function getAllowedMethods(): string[] {
+  const methodsEnv = process.env.CORS_ALLOWED_METHODS || 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS';
+  return methodsEnv
+    .split(',')
+    .map((method) => method.trim().toUpperCase())
+    .filter(Boolean);
 }
 
 /**
- * Instancia pre-configurada de opciones de CORS para Fastify.
+ * Crea la configuración de CORS para Fastify basada en el entorno.
+ * En desarrollo permite todos los orígenes. En producción solo permite
+ * los orígenes definidos en CORS_ALLOWED_ORIGINS.
+ *
  * @remarks
- * Exportación lista para usar directamente sin necesidad de llamar a createCorsConfig().
- * La configuración se adapta automáticamente según el entorno (desarrollo/producción).
+ * Variables de entorno utilizadas:
+ * - NODE_ENV: Determina si está en desarrollo o producción
+ * - CORS_ALLOWED_ORIGINS: Lista separada por comas de orígenes permitidos
+ * - CORS_ALLOWED_METHODS: Lista separada por comas de métodos HTTP permitidos
+ * - CORS_CREDENTIALS: Si permite credenciales (default: true)
+ *
+ * @returns Configuración de CORS para Fastify
  */
-export const CorsConfig: FastifyCorsOptions = createCorsConfig();
+export const corsConfigFactory = (): FastifyCorsOptions => {
+  {
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+    const prodOrigins = getProdAllowedOrigins();
+    const allowedMethods = getAllowedMethods();
 
-export default registerAs('corsConfig', (): FastifyCorsOptions => CorsConfig);
+    return {
+      origin: isDevelopment ? true : prodOrigins.length > 0 ? prodOrigins : false,
+      methods: allowedMethods,
+      allowedHeaders: ALLOWED_HEADERS,
+      exposedHeaders: EXPOSED_HEADERS,
+      credentials: process.env.CORS_CREDENTIALS !== 'false',
+      maxAge: isDevelopment ? 86400 : 3600,
+      preflightContinue: false,
+      optionsSuccessStatus: 204,
+    };
+  }
+};
+
+export default registerAs('corsConfig', (): FastifyCorsOptions => corsConfigFactory());
