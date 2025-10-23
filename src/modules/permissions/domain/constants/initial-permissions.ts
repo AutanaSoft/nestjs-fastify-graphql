@@ -1,13 +1,20 @@
-/**
- * Estructura de un permiso del sistema.
- */
-export interface Permission {
-  name: string;
-  description: string;
-}
+import type { Permission } from '@/shared/domain/types';
+import { SESSION_PERMISSIONS } from '@/modules/auth/domain/constants';
+import { USER_PERMISSIONS } from '@/modules/users/domain/constants';
+
+import { SYSTEM_PERMISSIONS } from './system-permissions';
 
 /**
- * Permisos iniciales del sistema.
+ * Permisos iniciales del sistema consolidados desde todos los módulos.
+ *
+ * @remarks
+ * Este archivo consolida los permisos definidos en cada módulo para facilitar
+ * la inicialización de la base de datos mediante seeds o migraciones.
+ *
+ * Arquitectura descentralizada:
+ * - Cada módulo define sus propios permisos en su dominio
+ * - Este archivo importa y combina todos los permisos
+ * - Se utiliza solo durante seed/migraciones, no en runtime
  *
  * Sistema de permisos de 2 niveles:
  *
@@ -31,129 +38,16 @@ export interface Permission {
  * - action: Acción sobre el recurso (read, create, update, delete, manage)
  * - scope: Alcance administrativo (all) - opcional, solo para acceso sin restricciones
  *
+ * Para agregar permisos de un nuevo módulo:
+ * 1. Crear archivo de permisos en el módulo: src/modules/{module}/domain/constants/{module}-permissions.ts
+ * 2. Importar y agregar al array INITIAL_PERMISSIONS en este archivo
+ *
  * @public
  */
 export const INITIAL_PERMISSIONS = [
-  // === PERMISOS DE USUARIOS ===
-  // Lectura
-  {
-    name: 'user:read',
-    description: 'View own user profile',
-  },
-  {
-    name: 'user:read:all',
-    description: 'View all users',
-  },
-  // Creación
-  {
-    name: 'user:create',
-    description: 'Create new users',
-  },
-  // Actualización
-  {
-    name: 'user:update',
-    description: 'Update own user profile',
-  },
-  {
-    name: 'user:update:all',
-    description: 'Update any user',
-  },
-  // Eliminación
-  {
-    name: 'user:delete',
-    description: 'Delete own account',
-  },
-  {
-    name: 'user:delete:all',
-    description: 'Delete any user',
-  },
-  // Gestión completa
-  {
-    name: 'user:manage',
-    description: 'Full user management (includes all user:* permissions)',
-  },
-
-  // === PERMISOS DE SESIONES ===
-  // Lectura
-  {
-    name: 'session:read',
-    description: 'View own active sessions',
-  },
-  {
-    name: 'session:read:all',
-    description: 'View all user sessions',
-  },
-  // Creación
-  {
-    name: 'session:create',
-    description: 'Create sessions (login)',
-  },
-  // Eliminación
-  {
-    name: 'session:delete',
-    description: 'Revoke own sessions (logout)',
-  },
-  {
-    name: 'session:delete:all',
-    description: 'Revoke any user sessions',
-  },
-  // Gestión completa
-  {
-    name: 'session:manage',
-    description: 'Full session management (includes all session:* permissions)',
-  },
-
-  // === PERMISOS DE PERMISOS ===
-  {
-    name: 'permission:read',
-    description: 'View available permissions',
-  },
-  {
-    name: 'permission:assign',
-    description: 'Assign permissions to users',
-  },
-  {
-    name: 'permission:revoke',
-    description: 'Revoke permissions from users',
-  },
-  {
-    name: 'permission:manage',
-    description: 'Full permission management',
-  },
-
-  // === PERMISOS DE CONFIGURACIÓN ===
-  {
-    name: 'settings:read',
-    description: 'View system settings',
-  },
-  {
-    name: 'settings:manage',
-    description: 'Modify system settings',
-  },
-
-  // === PERMISOS DE ADMINISTRACIÓN ===
-  {
-    name: 'admin:access',
-    description: 'Access admin panel',
-  },
-  {
-    name: 'admin:audit',
-    description: 'View audit logs and system activity',
-  },
-
-  // === PERMISOS DE SISTEMA ===
-  {
-    name: 'system:backup',
-    description: 'Create system backups',
-  },
-  {
-    name: 'system:restore',
-    description: 'Restore system from backups',
-  },
-  {
-    name: 'system:monitor',
-    description: 'Monitor system health and performance',
-  },
+  ...USER_PERMISSIONS,
+  ...SESSION_PERMISSIONS,
+  ...SYSTEM_PERMISSIONS,
 ] as const satisfies readonly Permission[];
 
 /**
