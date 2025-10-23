@@ -17,7 +17,8 @@ import {
 } from '@/modules/permissions/domain/constants';
 
 export { PERMISSIONS as INITIAL_PERMISSIONS, ROLES as ROLE_PERMISSIONS };
-export type { Permission, PermissionName, RoleName } from '@/modules/permissions/domain/constants';
+export type { PermissionName, RoleName } from '@/modules/permissions/domain/constants';
+export type { Permission } from '@/shared/domain/types';
 
 /**
  * Valida que todos los permisos referenciados en ROLE_PERMISSIONS

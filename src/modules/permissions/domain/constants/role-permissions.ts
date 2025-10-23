@@ -1,13 +1,23 @@
+import { USER_MODULE_ROLE_PERMISSIONS } from '@modules/users/domain/constants';
+import { SESSION_MODULE_ROLE_PERMISSIONS } from '@modules/auth/domain/constants';
+import { mergeRolePermissions } from '../utils';
 import type { PermissionName } from './initial-permissions';
+import { SYSTEM_MODULE_ROLE_PERMISSIONS } from './system-role-permissions';
 
 /**
- * Mapeo de roles a permisos predeterminados.
+ * Mapeo consolidado de roles a permisos predeterminados.
  *
- * Estos permisos se asignarán automáticamente al crear usuarios con estos roles.
- * Todos los nombres de permisos deben existir en INITIAL_PERMISSIONS.
+ * Este archivo combina los permisos de todos los módulos del sistema usando la
+ * función `mergeRolePermissions()`. Los permisos se definen de forma descentralizada
+ * en cada módulo y se consolidan aquí para facilitar el acceso y el seeding.
  *
  * @remarks
- * Jerarquía de roles (de mayor a menor privilegio):
+ * **Arquitectura descentralizada**:
+ * - Cada módulo define sus propios permisos de rol en `{module}-role-permissions.ts`
+ * - Este archivo los consolida automáticamente eliminando duplicados
+ * - Para agregar permisos de un nuevo módulo, importar su configuración y agregarlo al array
+ *
+ * **Jerarquía de roles** (de mayor a menor privilegio):
  * - SUPER_ADMIN: Acceso total y sin restricciones al sistema completo
  * - ADMIN: Gestión completa de usuarios, permisos y configuración
  * - MANAGER: Gestión de usuarios y visualización de auditoría
@@ -16,96 +26,26 @@ import type { PermissionName } from './initial-permissions';
  * - USER: Permisos básicos de lectura y gestión de recursos propios
  * - GUEST: Permisos mínimos, solo puede iniciar sesión
  *
+ * @example
+ * Agregar permisos de un nuevo módulo:
+ * ```typescript
+ * import { PRODUCT_MODULE_ROLE_PERMISSIONS } from '@modules/products/domain/constants';
+ *
+ * export const ROLE_PERMISSIONS = mergeRolePermissions([
+ *   USER_MODULE_ROLE_PERMISSIONS,
+ *   SESSION_MODULE_ROLE_PERMISSIONS,
+ *   SYSTEM_MODULE_ROLE_PERMISSIONS,
+ *   PRODUCT_MODULE_ROLE_PERMISSIONS, // ← Agregar aquí
+ * ]) satisfies Record<string, readonly PermissionName[]>;
+ * ```
+ *
  * @public
  */
-export const ROLE_PERMISSIONS = {
-  SUPER_ADMIN: [
-    // Gestión total de usuarios
-    'user:manage',
-    // Gestión total de permisos
-    'permission:manage',
-    // Gestión total de sesiones
-    'session:manage',
-    // Configuración del sistema
-    'settings:manage',
-    // Acceso administrativo
-    'admin:access',
-    'admin:audit',
-    // Operaciones de sistema
-    'system:backup',
-    'system:restore',
-    'system:monitor',
-  ],
-  ADMIN: [
-    // Gestión total de usuarios
-    'user:manage',
-    // Gestión total de permisos
-    'permission:manage',
-    // Gestión total de sesiones
-    'session:manage',
-    // Configuración del sistema
-    'settings:manage',
-    // Acceso administrativo
-    'admin:access',
-    'admin:audit',
-    // Monitoreo del sistema
-    'system:monitor',
-  ],
-  MANAGER: [
-    // Gestión de usuarios (sin eliminación total)
-    'user:read:all',
-    'user:create',
-    'user:update:all',
-    // Lectura de permisos
-    'permission:read',
-    // Gestión de sesiones
-    'session:read:all',
-    'session:delete:all',
-    // Auditoría
-    'admin:audit',
-    // Configuración de lectura
-    'settings:read',
-  ],
-  MODERATOR: [
-    // Lectura y actualización limitada de usuarios
-    'user:read:all',
-    'user:update:all',
-    // Lectura de permisos
-    'permission:read',
-    // Gestión de sesiones
-    'session:read:all',
-    'session:delete:all',
-    // Lectura de configuración
-    'settings:read',
-  ],
-  SUPPORT: [
-    // Lectura de usuarios
-    'user:read:all',
-    // Lectura de permisos
-    'permission:read',
-    // Lectura de sesiones
-    'session:read:all',
-    // Auditoría
-    'admin:audit',
-    // Lectura de configuración
-    'settings:read',
-  ],
-  USER: [
-    // Solo puede ver y modificar su propio perfil
-    'user:read',
-    'user:update',
-    // Puede gestionar sus propias sesiones
-    'session:read',
-    'session:create',
-    'session:delete',
-    // Puede ver permisos disponibles
-    'permission:read',
-  ],
-  GUEST: [
-    // Solo puede iniciar sesión
-    'session:create',
-  ],
-} as const satisfies Record<string, readonly PermissionName[]>;
+export const ROLE_PERMISSIONS = mergeRolePermissions([
+  USER_MODULE_ROLE_PERMISSIONS,
+  SESSION_MODULE_ROLE_PERMISSIONS,
+  SYSTEM_MODULE_ROLE_PERMISSIONS,
+]) satisfies Record<string, readonly PermissionName[]>;
 
 /**
  * Tipo que representa los roles disponibles en el sistema.
