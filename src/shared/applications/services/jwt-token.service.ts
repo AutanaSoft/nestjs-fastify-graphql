@@ -189,11 +189,11 @@ export class JwtTokenService {
   private getTempTokenExpiration(type: JwtTempTokenType): string {
     switch (type) {
       case JwtTempTokenType.FORGOT_PASSWORD:
-        return this.config.tempTokens.forgotPassword;
+        return this.config.tempTokens.forgot_password;
       case JwtTempTokenType.RESET_PASSWORD:
-        return this.config.tempTokens.resetPassword;
-      case JwtTempTokenType.REFRESH_TOKEN:
-        return this.config.tempTokens.refreshToken;
+        return this.config.tempTokens.reset_password;
+      case JwtTempTokenType.VERIFY_EMAIL:
+        return this.config.tempTokens.verify_email;
       default:
         return '15m'; // Fallback por defecto
     }
