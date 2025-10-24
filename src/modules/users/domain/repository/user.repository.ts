@@ -1,3 +1,4 @@
+import { DomainBaseError } from '@/shared/domain/errors';
 import { UserEntity } from '../entities';
 import { UserCreateType, UserUpdateType } from '../types/user';
 
@@ -20,7 +21,7 @@ export abstract class UserRepository {
    * @returns A promise that resolves to the created {@link UserEntity}, including generated identifiers
    * @throws Error Implementations may throw when persistence constraints are violated (e.g., unique email)
    */
-  abstract create(user: UserCreateType): Promise<UserEntity>;
+  abstract create(user: UserCreateType): Promise<UserEntity | DomainBaseError>;
 
   /**
    * Applies partial changes to an existing User.
@@ -30,7 +31,7 @@ export abstract class UserRepository {
    * @throws Error Implementations may throw when persistence constraints are violated (e.g., unique email)
    * @remarks Partial updates are supported; only provided fields will be updated
    */
-  abstract update(params: UserUpdateType): Promise<UserEntity>;
+  abstract update(params: UserUpdateType): Promise<UserEntity | DomainBaseError>;
 
   /**
    * Retrieves a User by its identifier.
@@ -38,7 +39,7 @@ export abstract class UserRepository {
    * @param id - User identifier
    * @returns A promise that resolves to the {@link UserEntity} when found; otherwise `null`
    */
-  abstract findById(id: string): Promise<UserEntity | null>;
+  abstract findById(id: string): Promise<UserEntity | null | DomainBaseError>;
 
   /**
    * Retrieves a User by email address.
@@ -46,14 +47,14 @@ export abstract class UserRepository {
    * @param email - User email address
    * @returns A promise that resolves to the {@link UserEntity} when found; otherwise `null`
    */
-  abstract findByEmail(email: string): Promise<UserEntity | null>;
+  abstract findByEmail(email: string): Promise<UserEntity | null | DomainBaseError>;
 
   /**
    * Returns all Users.
    *
    * @returns A promise that resolves to an array of {@link UserEntity}; empty when none exist
    */
-  abstract findAll(): Promise<UserEntity[]>;
+  abstract findAll(): Promise<UserEntity[] | DomainBaseError>;
 }
 
 export const USER_REPOSITORY = Symbol('UserRepository');
