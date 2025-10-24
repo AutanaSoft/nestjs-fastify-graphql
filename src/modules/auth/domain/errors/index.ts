@@ -1,2 +1,1 @@
-export * from './auth.errors';
-export * from './session.errors';
+export * from './auth-error.helpers';

@@ -5,15 +5,16 @@ import { USER_REPOSITORY, UserRepository } from '@/modules/users/domain/reposito
 import { UserStatus } from '@/modules/users/domain/enums';
 import { JwtTokenService } from '@/shared/applications/services';
 import { HashUtils } from '@/shared/applications/utils';
+import { DomainBaseError } from '@/shared/domain/errors';
 import { SessionType } from '@/shared/domain/enums';
 
 import { RefreshTokenService } from '../../domain/services';
 import type { RefreshTokenContext } from '../../domain/types';
 import { AuthCredentialsDto, SignInArgsDto } from '../dto';
 import {
-  InvalidCredentialsError,
-  AccountNotVerifiedError,
-  AccountSuspendedError,
+  createInvalidCredentialsError,
+  createAccountNotVerifiedError,
+  createAccountSuspendedError,
 } from '../../domain/errors';
 
 /**
@@ -36,9 +37,7 @@ export class SignInUseCase {
    * @param command Argumentos que contienen las credenciales del usuario
    * @param context Contexto de la solicitud (userAgent, IP, tipo de sesión)
    * @returns Credenciales de autenticación con access token y refresh token
-   * @throws InvalidCredentialsError Cuando las credenciales son incorrectas
-   * @throws AccountNotVerifiedError Cuando la cuenta no está verificada
-   * @throws AccountSuspendedError Cuando la cuenta está suspendida
+   * @throws DomainBaseError Cuando las credenciales son incorrectas, la cuenta no está verificada o está suspendida
    */
   async execute(
     command: SignInArgsDto,
@@ -49,22 +48,27 @@ export class SignInUseCase {
 
     // Buscar usuario por email
     const user = await this.userRepository.findByEmail(input.email);
+
+    if (user instanceof DomainBaseError) {
+      throw user;
+    }
+
     if (!user) {
       this.logger.warn({ email: input.email }, 'Sign-in failed: User not found');
-      throw new InvalidCredentialsError();
+      throw createInvalidCredentialsError();
     }
 
     // Verificar contraseña
     const isPasswordValid = await HashUtils.comparePassword(input.password, user.password);
     if (!isPasswordValid) {
       this.logger.warn({ userId: user.id }, 'Sign-in failed: Invalid password');
-      throw new InvalidCredentialsError();
+      throw createInvalidCredentialsError();
     }
 
     // Verificar estado de la cuenta
     if (!user.emailVerified) {
       this.logger.warn({ userId: user.id }, 'Sign-in failed: Email not verified');
-      throw new AccountNotVerifiedError(user.email);
+      throw createAccountNotVerifiedError(user.email);
     }
 
     if (user.status === UserStatus.SUSPENDED || user.status === UserStatus.BANNED) {
@@ -72,7 +76,7 @@ export class SignInUseCase {
         { userId: user.id, status: user.status },
         'Sign-in failed: Account suspended',
       );
-      throw new AccountSuspendedError(user.status);
+      throw createAccountSuspendedError(user.status);
     }
 
     // Generar access token
