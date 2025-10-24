@@ -1,7 +1,5 @@
 import { DomainBaseError, ErrorFactory } from '@/shared/domain/errors';
 import { Injectable } from '@nestjs/common';
-import { GraphQLErrorOptions } from 'graphql';
-import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import {
   PrismaClientInitializationError,
   PrismaClientKnownRequestError,
@@ -9,6 +7,8 @@ import {
   PrismaClientUnknownRequestError,
   PrismaClientValidationError,
 } from '@prisma/client/runtime/library';
+import { GraphQLErrorOptions } from 'graphql';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { HANDLER_ORM_ERRORS_DEFAULT_MESSAGE } from '../constants';
 import { HandlerOrmErrorMessagesType, PrismaErrorMeta } from '../types';
 
@@ -33,7 +33,7 @@ export class HandlerOrmErrorsService {
   public handleError(
     error: unknown,
     errorsMessages: Partial<HandlerOrmErrorMessagesType> = {},
-  ): never {
+  ): DomainBaseError {
     const mergedMessages: HandlerOrmErrorMessagesType = {
       ...HANDLER_ORM_ERRORS_DEFAULT_MESSAGE,
       ...errorsMessages,
@@ -95,10 +95,13 @@ export class HandlerOrmErrorsService {
    * @returns Nunca retorna porque lanza una excepción.
    * @throws DomainBaseError Siempre, encapsulando el error original.
    */
-  private handleUnknownError(error: unknown, errorsMessages: HandlerOrmErrorMessagesType): never {
+  private handleUnknownError(
+    error: unknown,
+    errorsMessages: HandlerOrmErrorMessagesType,
+  ): DomainBaseError {
     this.logger.assign({ method: 'handleUnknownError' });
     this.logger.error({ error }, 'Unknown Prisma error detected');
-    throw this.extendWithOriginalError(
+    return this.extendWithOriginalError(
       ErrorFactory.createInternalServerError('DATABASE_UNKNOWN_ERROR', errorsMessages.unknown),
       this.buildGraphQLErrorOptions(error),
     );
@@ -114,7 +117,7 @@ export class HandlerOrmErrorsService {
   private handleKnownRequestError(
     error: PrismaClientKnownRequestError,
     errorMessages: HandlerOrmErrorMessagesType,
-  ): never {
+  ): DomainBaseError {
     const meta = (error.meta ?? {}) as PrismaErrorMeta;
     this.logger.assign({
       method: 'handleKnownRequestError',
@@ -139,7 +142,7 @@ export class HandlerOrmErrorsService {
 
     switch (error.code) {
       case 'P2002': // Unique constraint violation
-        throw this.extendWithOriginalError(
+        return this.extendWithOriginalError(
           ErrorFactory.createConflictError(
             'UNIQUE_CONSTRAINT_VIOLATION',
             errorMessages.uniqueConstraint,
@@ -148,12 +151,12 @@ export class HandlerOrmErrorsService {
           graphqlOptions,
         );
       case 'P2025': // Record not found
-        throw this.extendWithOriginalError(
+        return this.extendWithOriginalError(
           ErrorFactory.createNotFoundError('RECORD_NOT_FOUND', errorMessages.notFound, context),
           graphqlOptions,
         );
       case 'P2003': // Foreign key constraint violation
-        throw this.extendWithOriginalError(
+        return this.extendWithOriginalError(
           ErrorFactory.createInternalServerError(
             'FOREIGN_KEY_CONSTRAINT_VIOLATION',
             errorMessages.foreignKeyConstraint,
@@ -168,7 +171,7 @@ export class HandlerOrmErrorsService {
       case 'P2015': // Related record not found
       case 'P2019': // Input error
       case 'P2020': // Value out of range
-        throw this.extendWithOriginalError(
+        return this.extendWithOriginalError(
           ErrorFactory.createInternalServerError(
             'DATABASE_VALIDATION_ERROR',
             errorMessages.validation,
@@ -180,7 +183,7 @@ export class HandlerOrmErrorsService {
       case 'P1002': // Database server timeout
       case 'P1008': // Operations timed out
       case 'P1017': // Server has closed the connection
-        throw this.extendWithOriginalError(
+        return this.extendWithOriginalError(
           ErrorFactory.createInternalServerError(
             'DATABASE_CONNECTION_ERROR',
             errorMessages.connection,
@@ -189,7 +192,7 @@ export class HandlerOrmErrorsService {
           graphqlOptions,
         );
       default:
-        throw this.extendWithOriginalError(
+        return this.extendWithOriginalError(
           ErrorFactory.createInternalServerError('DATABASE_ERROR', errorMessages.unknown, context),
           graphqlOptions,
         );
