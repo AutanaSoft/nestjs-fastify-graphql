@@ -4,6 +4,7 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { HandlerOrmErrorsService, PrismaService } from '@/shared/applications/services';
 import { PermissionEntity } from '../../domain/entities';
 import { PermissionRepository } from '../../domain/repositories';
+import { PERMISSION_ORM_ERROR_CONFIG } from '../config/permission-orm-errors.config';
 
 /**
  * Implementa el repositorio de permisos utilizando Prisma ORM como adaptador.
@@ -61,11 +62,7 @@ export class PermissionPrismaAdapter implements PermissionRepository {
 
       return permission ? PermissionEntity.toDomain(permission) : null;
     } catch (err) {
-      return this.handlerOrmErrorsService.handleError(err, {
-        notFound: `Permission '${name}' not found`,
-        validation: 'Invalid permission data provided',
-        unknown: 'An unexpected error occurred while fetching permission',
-      });
+      return this.handlerOrmErrorsService.handleError(err, PERMISSION_ORM_ERROR_CONFIG);
     }
   }
 
@@ -88,10 +85,7 @@ export class PermissionPrismaAdapter implements PermissionRepository {
 
       return PermissionEntity.toDomainList(permissions);
     } catch (err) {
-      return this.handlerOrmErrorsService.handleError(err, {
-        validation: 'Invalid permission data provided',
-        unknown: 'An unexpected error occurred while fetching permissions',
-      });
+      return this.handlerOrmErrorsService.handleError(err, PERMISSION_ORM_ERROR_CONFIG);
     }
   }
 
@@ -116,11 +110,7 @@ export class PermissionPrismaAdapter implements PermissionRepository {
       const permissions = userPermissions.map((up) => up.permission);
       return PermissionEntity.toDomainList(permissions);
     } catch (err) {
-      return this.handlerOrmErrorsService.handleError(err, {
-        notFound: 'User not found',
-        validation: 'Invalid user ID provided',
-        unknown: 'An unexpected error occurred while fetching user permissions',
-      });
+      return this.handlerOrmErrorsService.handleError(err, PERMISSION_ORM_ERROR_CONFIG);
     }
   }
 
@@ -151,12 +141,7 @@ export class PermissionPrismaAdapter implements PermissionRepository {
         'Permissions assigned successfully',
       );
     } catch (err) {
-      return this.handlerOrmErrorsService.handleError(err, {
-        notFound: 'User or permission not found',
-        foreignKeyConstraint: 'Invalid user or permission reference',
-        validation: 'Invalid permission assignment data',
-        unknown: 'An unexpected error occurred while assigning permissions',
-      });
+      return this.handlerOrmErrorsService.handleError(err, PERMISSION_ORM_ERROR_CONFIG);
     }
   }
 
@@ -184,10 +169,7 @@ export class PermissionPrismaAdapter implements PermissionRepository {
 
       this.logger.info({ userId, count: permissionIds.length }, 'Permissions revoked successfully');
     } catch (err) {
-      return this.handlerOrmErrorsService.handleError(err, {
-        validation: 'Invalid permission revocation data',
-        unknown: 'An unexpected error occurred while revoking permissions',
-      });
+      return this.handlerOrmErrorsService.handleError(err, PERMISSION_ORM_ERROR_CONFIG);
     }
   }
 
@@ -212,10 +194,7 @@ export class PermissionPrismaAdapter implements PermissionRepository {
 
       return userPermission !== null;
     } catch (err) {
-      return this.handlerOrmErrorsService.handleError(err, {
-        validation: 'Invalid permission check data',
-        unknown: 'An unexpected error occurred while checking permission',
-      });
+      return this.handlerOrmErrorsService.handleError(err, PERMISSION_ORM_ERROR_CONFIG);
     }
   }
 }
