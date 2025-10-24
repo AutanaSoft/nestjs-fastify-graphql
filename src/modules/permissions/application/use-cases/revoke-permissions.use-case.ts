@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
+import { DomainBaseError } from '@/shared/domain/errors';
 import { createPermissionNotFoundError } from '../../domain/errors';
 import { PERMISSION_REPOSITORY, PermissionRepository } from '../../domain/repositories';
 import { RevokePermissionsResult } from '../../domain/types';
@@ -37,7 +38,10 @@ export class RevokePermissionsUseCase {
     this.logger.info({ userId, permissionNames }, 'Revoking permissions from user');
 
     // Verificar que todos los permisos existan
-    const permissions = await this.permissionRepository.findByNames(permissionNames);
+    const permissionsResult = await this.permissionRepository.findByNames(permissionNames);
+    if (permissionsResult instanceof DomainBaseError) throw permissionsResult;
+    const permissions = permissionsResult;
+
     const foundNames = new Set(permissions.map((p) => p.name));
     const notFound = permissionNames.filter((name) => !foundNames.has(name));
 
@@ -47,7 +51,10 @@ export class RevokePermissionsUseCase {
     }
 
     // Obtener permisos actuales del usuario
-    const currentPermissions = await this.permissionRepository.findUserPermissions(userId);
+    const currentPermissionsResult = await this.permissionRepository.findUserPermissions(userId);
+    if (currentPermissionsResult instanceof DomainBaseError) throw currentPermissionsResult;
+    const currentPermissions = currentPermissionsResult;
+
     const currentNames = new Set(currentPermissions.map((p) => p.name));
 
     // Determinar cuáles permisos están asignados y cuáles no
@@ -57,7 +64,8 @@ export class RevokePermissionsUseCase {
     // Revocar solo los permisos que tiene el usuario
     if (toRevoke.length > 0) {
       const permissionIds = toRevoke.map((p) => p.id);
-      await this.permissionRepository.revokePermissions(userId, permissionIds);
+      const result = await this.permissionRepository.revokePermissions(userId, permissionIds);
+      if (result instanceof DomainBaseError) throw result;
     }
 
     const result: RevokePermissionsResult = {

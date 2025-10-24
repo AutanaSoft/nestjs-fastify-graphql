@@ -1,3 +1,4 @@
+import { DomainBaseError } from '@/shared/domain/errors';
 import { PermissionEntity } from '../entities';
 
 /**
@@ -20,7 +21,7 @@ export abstract class PermissionRepository {
    * @returns Promesa que resuelve al array de {@link PermissionEntity}
    * @throws DataBaseError cuando ocurre un fallo al consultar datos
    */
-  abstract findAll(): Promise<PermissionEntity[]>;
+  abstract findAll(): Promise<PermissionEntity[] | DomainBaseError>;
 
   /**
    * Recupera un permiso por su nombre único.
@@ -29,7 +30,7 @@ export abstract class PermissionRepository {
    * @returns Promesa que resuelve a {@link PermissionEntity} si se encuentra; de lo contrario `null`
    * @throws DataBaseError cuando ocurre un fallo al consultar datos
    */
-  abstract findByName(name: string): Promise<PermissionEntity | null>;
+  abstract findByName(name: string): Promise<PermissionEntity | null | DomainBaseError>;
 
   /**
    * Recupera múltiples permisos por sus nombres.
@@ -39,7 +40,7 @@ export abstract class PermissionRepository {
    * @throws DataBaseError cuando ocurre un fallo al consultar datos
    * @remarks Los permisos no encontrados simplemente no estarán en el resultado
    */
-  abstract findByNames(names: string[]): Promise<PermissionEntity[]>;
+  abstract findByNames(names: string[]): Promise<PermissionEntity[] | DomainBaseError>;
 
   /**
    * Recupera todos los permisos asignados a un usuario específico.
@@ -49,7 +50,7 @@ export abstract class PermissionRepository {
    * @throws DataBaseError cuando ocurre un fallo al consultar datos
    * @remarks Incluye solo permisos asignados explícitamente, no los del rol base
    */
-  abstract findUserPermissions(userId: string): Promise<PermissionEntity[]>;
+  abstract findUserPermissions(userId: string): Promise<PermissionEntity[] | DomainBaseError>;
 
   /**
    * Asigna múltiples permisos a un usuario.
@@ -61,7 +62,10 @@ export abstract class PermissionRepository {
    * @throws NotFoundError si el usuario o algún permiso no existe
    * @remarks Los permisos duplicados son ignorados (skipDuplicates)
    */
-  abstract assignPermissions(userId: string, permissionIds: string[]): Promise<void>;
+  abstract assignPermissions(
+    userId: string,
+    permissionIds: string[],
+  ): Promise<void | DomainBaseError>;
 
   /**
    * Revoca múltiples permisos de un usuario.
@@ -72,7 +76,10 @@ export abstract class PermissionRepository {
    * @throws DataBaseError cuando ocurre un fallo de persistencia
    * @remarks Los permisos no asignados son ignorados silenciosamente
    */
-  abstract revokePermissions(userId: string, permissionIds: string[]): Promise<void>;
+  abstract revokePermissions(
+    userId: string,
+    permissionIds: string[],
+  ): Promise<void | DomainBaseError>;
 
   /**
    * Verifica si un usuario tiene un permiso específico asignado.
@@ -83,7 +90,10 @@ export abstract class PermissionRepository {
    * @throws DataBaseError cuando ocurre un fallo al consultar datos
    * @remarks Verifica solo permisos asignados explícitamente, no los del rol base
    */
-  abstract hasPermission(userId: string, permissionName: string): Promise<boolean>;
+  abstract hasPermission(
+    userId: string,
+    permissionName: string,
+  ): Promise<boolean | DomainBaseError>;
 }
 
 /**

@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
+import { DomainBaseError } from '@/shared/domain/errors';
 import { PermissionEntity } from '../../domain/entities';
 import { PERMISSION_REPOSITORY, PermissionRepository } from '../../domain/repositories';
 import { FindAllPermissionsArgsDto } from '../dto';
@@ -33,7 +34,9 @@ export class FindAllPermissionsUseCase {
   async execute(args: FindAllPermissionsArgsDto): Promise<PermissionEntity[]> {
     this.logger.info({ filter: args.filter }, 'Finding all permissions');
 
-    const permissions = await this.permissionRepository.findAll();
+    const permissionsResult = await this.permissionRepository.findAll();
+    if (permissionsResult instanceof DomainBaseError) throw permissionsResult;
+    const permissions = permissionsResult;
 
     // Aplicar filtro de búsqueda si existe
     if (args.filter?.search) {

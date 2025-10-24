@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
+import { DomainBaseError } from '@/shared/domain/errors';
 import { createPermissionNotFoundError } from '../../domain/errors';
 import { PERMISSION_REPOSITORY, PermissionRepository } from '../../domain/repositories';
 import { AssignPermissionsResult } from '../../domain/types';
@@ -38,7 +39,10 @@ export class AssignPermissionsUseCase {
     this.logger.info({ userId, permissionNames }, 'Assigning permissions to user');
 
     // Verificar que todos los permisos existan
-    const permissions = await this.permissionRepository.findByNames(permissionNames);
+    const permissionsResult = await this.permissionRepository.findByNames(permissionNames);
+    if (permissionsResult instanceof DomainBaseError) throw permissionsResult;
+    const permissions = permissionsResult;
+
     const foundNames = new Set(permissions.map((p) => p.name));
     const notFound = permissionNames.filter((name) => !foundNames.has(name));
 
@@ -48,7 +52,10 @@ export class AssignPermissionsUseCase {
     }
 
     // Obtener permisos actuales del usuario
-    const currentPermissions = await this.permissionRepository.findUserPermissions(userId);
+    const currentPermissionsResult = await this.permissionRepository.findUserPermissions(userId);
+    if (currentPermissionsResult instanceof DomainBaseError) throw currentPermissionsResult;
+    const currentPermissions = currentPermissionsResult;
+
     const currentNames = new Set(currentPermissions.map((p) => p.name));
 
     // Determinar cuáles permisos son nuevos y cuáles ya existen
@@ -58,7 +65,8 @@ export class AssignPermissionsUseCase {
     // Asignar solo los permisos que no tiene el usuario
     if (toAssign.length > 0) {
       const permissionIds = toAssign.map((p) => p.id);
-      await this.permissionRepository.assignPermissions(userId, permissionIds);
+      const result = await this.permissionRepository.assignPermissions(userId, permissionIds);
+      if (result instanceof DomainBaseError) throw result;
     }
 
     const result: AssignPermissionsResult = {

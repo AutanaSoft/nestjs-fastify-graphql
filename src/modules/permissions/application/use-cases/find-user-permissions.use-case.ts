@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
+import { DomainBaseError } from '@/shared/domain/errors';
 import { PermissionEntity } from '../../domain/entities';
 import { PERMISSION_REPOSITORY, PermissionRepository } from '../../domain/repositories';
 import { FindUserPermissionsArgsDto } from '../dto';
@@ -35,7 +36,9 @@ export class FindUserPermissionsUseCase {
     const { userId } = args.filter;
     this.logger.info({ userId }, 'Finding user permissions');
 
-    const permissions = await this.permissionRepository.findUserPermissions(userId);
+    const permissionsResult = await this.permissionRepository.findUserPermissions(userId);
+    if (permissionsResult instanceof DomainBaseError) throw permissionsResult;
+    const permissions = permissionsResult;
 
     this.logger.info(
       { userId, count: permissions.length },
