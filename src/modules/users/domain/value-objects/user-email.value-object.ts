@@ -1,4 +1,7 @@
-import { ForbiddenEmailDomainError, UserCreationError } from '@/modules/users/domain/errors';
+import {
+  createForbiddenEmailDomainError,
+  createUserCreationError,
+} from '@/modules/users/domain/errors';
 import { isEmail } from 'class-validator';
 import { FORBIDDEN_EMAIL_DOMAINS } from '../constants';
 
@@ -57,15 +60,15 @@ export class UserEmail {
     const normalizedValue = value.trim().toLowerCase();
 
     if (!normalizedValue || normalizedValue.length === 0) {
-      throw new UserCreationError('Email is required.');
+      throw createUserCreationError('Email is required.');
     }
 
     if (normalizedValue.length > this.MAX_LENGTH) {
-      throw new UserCreationError(`Email must be at most ${this.MAX_LENGTH} characters long.`);
+      throw createUserCreationError(`Email must be at most ${this.MAX_LENGTH} characters long.`);
     }
 
     if (!isEmail(normalizedValue)) {
-      throw new UserCreationError('Email must be a valid email address.');
+      throw createUserCreationError('Email must be a valid email address.');
     }
   }
 
@@ -85,7 +88,7 @@ export class UserEmail {
     const normalizedValue = value.trim().toLowerCase();
     const domain = this.extractDomain(normalizedValue);
     if (FORBIDDEN_EMAIL_DOMAINS.includes(domain)) {
-      throw new ForbiddenEmailDomainError(value, domain);
+      throw createForbiddenEmailDomainError(value, domain);
     }
   }
 

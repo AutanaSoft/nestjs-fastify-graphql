@@ -1,5 +1,8 @@
 import { FORBIDDEN_USER_NAMES } from '../constants';
-import { ForbiddenUserNameError, UserCreationError } from '@/modules/users/domain/errors';
+import {
+  createForbiddenUserNameError,
+  createUserCreationError,
+} from '@/modules/users/domain/errors';
 
 /**
  * Value Object que encapsula y valida un nombre de usuario.
@@ -57,28 +60,30 @@ export class UserName {
     const trimmedValue = value.trim();
     // validate that the username is not empty or just whitespace
     if (!trimmedValue || trimmedValue.length === 0) {
-      throw new UserCreationError('UserName is required.');
+      throw createUserCreationError('UserName is required.');
     }
 
     // validate that the username minimum length is 3
     if (trimmedValue.length < this.MIN_LENGTH) {
-      throw new UserCreationError(`UserName must be at least ${this.MIN_LENGTH} characters long.`);
+      throw createUserCreationError(
+        `UserName must be at least ${this.MIN_LENGTH} characters long.`,
+      );
     }
 
     // validate that the username maximum length is 20
     if (trimmedValue.length > this.MAX_LENGTH) {
-      throw new UserCreationError(`UserName must be at most ${this.MAX_LENGTH} characters long`);
+      throw createUserCreationError(`UserName must be at most ${this.MAX_LENGTH} characters long`);
     }
 
     // validate that the username starts with a letter
     const formatRegex = this.STARTS_WITH_LETTER_REGEX;
     if (!formatRegex.test(trimmedValue)) {
-      throw new UserCreationError('UserName must start with a letter (A-Z or a-z).');
+      throw createUserCreationError('UserName must start with a letter (A-Z or a-z).');
     }
 
     // validate that the username contains only letters, numbers, dots, underscores or hyphens
     if (!this.ALLOWED_CHARACTERS_REGEX.test(trimmedValue)) {
-      throw new UserCreationError(
+      throw createUserCreationError(
         'UserName can include only letters, numbers, dots (.), underscores (_) or hyphens (-).',
       );
     }
@@ -114,7 +119,7 @@ export class UserName {
     const containsForbiddenWord = forbiddenPattern.test(normalizedValue);
 
     if (containsForbiddenWord) {
-      throw new ForbiddenUserNameError(value);
+      throw createForbiddenUserNameError(value);
     }
   }
 

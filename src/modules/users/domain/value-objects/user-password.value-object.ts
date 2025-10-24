@@ -1,4 +1,4 @@
-import { UserCreationError } from '@/modules/users/domain/errors';
+import { createUserCreationError } from '@/modules/users/domain/errors';
 
 /**
  * Value Object que encapsula y valida una contraseña de usuario.
@@ -63,26 +63,26 @@ export class UserPassword {
 
     // Validar que la contraseña no esté vacía
     if (!trimmedValue || trimmedValue.length === 0) {
-      throw new UserCreationError('Password is required.');
+      throw createUserCreationError('Password is required.');
     }
 
     // Validar longitud mínima
     if (trimmedValue.length < UserPassword.MIN_LENGTH) {
-      throw new UserCreationError(
+      throw createUserCreationError(
         `Password must be at least ${UserPassword.MIN_LENGTH} characters long.`,
       );
     }
 
     // Validar longitud máxima
     if (trimmedValue.length > UserPassword.MAX_LENGTH) {
-      throw new UserCreationError(
+      throw createUserCreationError(
         `Password must be at most ${UserPassword.MAX_LENGTH} characters long.`,
       );
     }
 
     // Validar complejidad de la contraseña
     if (!UserPassword.PASSWORD_REGEX.test(trimmedValue)) {
-      throw new UserCreationError(
+      throw createUserCreationError(
         'Password must include at least one uppercase letter, one lowercase letter, one digit, and one special character (@$!%*?&)',
       );
     }

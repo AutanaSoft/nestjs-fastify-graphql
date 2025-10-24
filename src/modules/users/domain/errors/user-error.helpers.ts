@@ -137,3 +137,76 @@ export const createUserValidationError = (
     { fields, failedCount: fields.length },
   );
 };
+
+/**
+ * Crea un error de nombre de usuario prohibido (403).
+ *
+ * @param userName - Nombre de usuario que está prohibido
+ * @returns Error de dominio FORBIDDEN indicando que el username no está permitido
+ *
+ * @example
+ * ```typescript
+ * throw createForbiddenUserNameError('admin');
+ * // FORBIDDEN_USERNAME: The username "admin" is not allowed
+ * ```
+ */
+export const createForbiddenUserNameError = (userName: string): DomainBaseError =>
+  ErrorFactory.createForbiddenError(
+    'FORBIDDEN_USERNAME',
+    `The username "${userName}" is not allowed`,
+    { userName },
+  );
+
+/**
+ * Crea un error de dominio de email prohibido (403).
+ *
+ * @param email - Email completo que fue rechazado
+ * @param domain - Dominio del email que está prohibido
+ * @returns Error de dominio FORBIDDEN indicando que el dominio no está permitido
+ *
+ * @example
+ * ```typescript
+ * throw createForbiddenEmailDomainError('test@example.com', 'example.com');
+ * // FORBIDDEN_EMAIL_DOMAIN: The email domain "example.com" from "test@example.com" is not allowed
+ * ```
+ */
+export const createForbiddenEmailDomainError = (email: string, domain: string): DomainBaseError =>
+  ErrorFactory.createForbiddenError(
+    'FORBIDDEN_EMAIL_DOMAIN',
+    `The email domain "${domain}" from "${email}" is not allowed`,
+    { email, domain },
+  );
+
+/**
+ * Crea un error de actualización de usuario fallida (500).
+ *
+ * @param userId - ID del usuario que no se pudo actualizar
+ * @returns Error de dominio INTERNAL_SERVER_ERROR para fallos de actualización
+ *
+ * @example
+ * ```typescript
+ * throw createUserUpdateFailedError('123e4567-e89b-12d3-a456-426614174000');
+ * // USER_UPDATE_FAILED: Failed to update user with ID "123e4567-e89b-12d3-a456-426614174000"
+ * ```
+ */
+export const createUserUpdateFailedError = (userId: string): DomainBaseError =>
+  ErrorFactory.createInternalServerError(
+    'USER_UPDATE_FAILED',
+    `Failed to update user with ID "${userId}"`,
+    { userId },
+  );
+
+/**
+ * Crea un error de creación de usuario (400).
+ *
+ * @param message - Mensaje descriptivo del error de creación/validación
+ * @returns Error de dominio BAD_REQUEST para errores de creación
+ *
+ * @example
+ * ```typescript
+ * throw createUserCreationError('Password does not meet complexity requirements');
+ * // USER_CREATION_ERROR: Password does not meet complexity requirements
+ * ```
+ */
+export const createUserCreationError = (message: string): DomainBaseError =>
+  ErrorFactory.createBadRequestError('USER_CREATION_ERROR', message || 'User creation failed', {});

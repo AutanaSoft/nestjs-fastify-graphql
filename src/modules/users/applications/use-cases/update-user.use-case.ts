@@ -1,8 +1,9 @@
 import { HashUtils } from '@/shared/applications/utils';
+import { DomainBaseError } from '@/shared/domain/errors';
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { UserEntity } from '../../domain/entities';
-import { UserNotFoundError } from '../../domain/errors';
+import { createUserNotFoundError } from '../../domain/errors';
 import { USER_REPOSITORY, UserRepository } from '../../domain/repository';
 import { UserUpdateType } from '../../domain/types';
 import { UserEmail, UserName, UserPassword } from '../../domain/value-objects';
@@ -29,9 +30,7 @@ export class UpdateUserUseCase {
    *
    * @param command Argumentos que contienen el ID del usuario y los datos a actualizar.
    * @returns La entidad de usuario actualizada.
-   * @throws UserNotFoundError Si el usuario con el ID especificado no existe.
-   * @throws ForbiddenUserNameError Si el nombre de usuario está prohibido.
-   * @throws UserUpdateFailedError Si la operación de actualización falla en el repositorio.
+   * @throws DomainBaseError Si el usuario no existe, el nombre está prohibido, o la operación falla.
    * @remarks Valida la existencia del usuario antes de aplicar la actualización.
    */
   async execute(command: UserUpdateType): Promise<UserEntity> {
@@ -40,7 +39,13 @@ export class UpdateUserUseCase {
 
     const existingUser = await this.userRepository.findById(id);
 
-    if (!existingUser) throw new UserNotFoundError(`User with ID ${id} not found`);
+    if (existingUser instanceof DomainBaseError) {
+      throw existingUser;
+    }
+
+    if (!existingUser) {
+      throw createUserNotFoundError(id);
+    }
 
     // Validamos el userName si viene en los datos a actualizar
     if (data.userName) {
@@ -65,6 +70,10 @@ export class UpdateUserUseCase {
       id,
       data,
     });
+
+    if (updated instanceof DomainBaseError) {
+      throw updated;
+    }
 
     this.logger.info({ userId: updated.id }, 'User updated successfully');
     return updated;
