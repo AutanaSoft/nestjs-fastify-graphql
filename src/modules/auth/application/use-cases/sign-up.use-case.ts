@@ -3,6 +3,7 @@ import { UserEmail, UserName, UserPassword } from '@/modules/users/domain/value-
 import { JwtTokenService } from '@/shared/applications/services';
 import { HashUtils } from '@/shared/applications/utils';
 import { SessionType } from '@/shared/domain/enums';
+import { DomainBaseError } from '@/shared/domain/errors';
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { RefreshTokenService } from '../../domain/services';
@@ -54,6 +55,8 @@ export class SignUpUseCase {
       email: userEmail.getValue(),
       password: hashedPassword,
     });
+
+    if (user instanceof DomainBaseError) throw user;
 
     this.logger.info({ userId: user.id }, 'User created successfully');
 

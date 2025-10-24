@@ -9,12 +9,33 @@ import {
 } from '@prisma/client/runtime/library';
 import { GraphQLErrorOptions } from 'graphql';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { HANDLER_ORM_ERRORS_DEFAULT_MESSAGE } from '../constants';
-import { HandlerOrmErrorMessagesType, PrismaErrorMeta } from '../types';
+import { HANDLER_ORM_ERRORS_DEFAULT_CONFIG } from '../constants';
+import { HandlerOrmErrorConfig, PrismaErrorMeta } from '../types';
 
 @Injectable()
 /**
  * Gestiona los errores generados por Prisma ORM y los mapea a excepciones de dominio.
+ *
+ * @remarks
+ * Este servicio centraliza el manejo de errores de Prisma permitiendo que cada módulo
+ * personalice los códigos y mensajes de error según su contexto. Usa el patrón de
+ * configuración por defecto con sobrescritura opcional.
+ *
+ * @example
+ * ```typescript
+ * // En un repositorio
+ * try {
+ *   return await prisma.user.create({ data });
+ * } catch (error) {
+ *   return this.handlerOrmErrors.handleError(error, {
+ *     uniqueConstraint: {
+ *       code: 'USER_EMAIL_EXISTS',
+ *       message: 'A user with this email already exists'
+ *     }
+ *   });
+ * }
+ * ```
+ *
  * @public
  */
 export class HandlerOrmErrorsService {
@@ -24,99 +45,125 @@ export class HandlerOrmErrorsService {
   ) {}
 
   /**
-   * Procesa un error de Prisma y lanza la excepción de dominio correspondiente.
+   * Procesa un error de Prisma y retorna la excepción de dominio correspondiente.
+   *
    * @param error Error capturado en la capa de infraestructura.
-   * @param errorsMessages Mensajes personalizados por tipo de error.
-   * @returns Nunca retorna porque siempre lanza una excepción.
-   * @throws DomainBaseError Siempre lanza un error de dominio apropiado.
+   * @param customConfig Configuración personalizada de códigos y mensajes por módulo.
+   * @returns Instancia de DomainBaseError con el código y mensaje apropiados.
+   *
+   * @remarks
+   * El servicio hace merge de la configuración personalizada con los defaults,
+   * permitiendo sobrescribir solo los errores que el módulo necesita personalizar.
    */
-  public handleError(
-    error: unknown,
-    errorsMessages: Partial<HandlerOrmErrorMessagesType> = {},
-  ): DomainBaseError {
-    const mergedMessages: HandlerOrmErrorMessagesType = {
-      ...HANDLER_ORM_ERRORS_DEFAULT_MESSAGE,
-      ...errorsMessages,
-    };
+  public handleError(error: unknown, customConfig: HandlerOrmErrorConfig = {}): DomainBaseError {
+    // Merge de configuración personalizada con defaults
+    const config = this.mergeConfig(customConfig);
 
     this.logger.assign({ error });
     this.logger.debug('Handling Prisma error...');
 
     if (error instanceof PrismaClientKnownRequestError) {
       this.logger.debug('PrismaClientKnownRequestError detected');
-      return this.handleKnownRequestError(error, mergedMessages);
+      return this.handleKnownRequestError(error, config);
     }
 
     if (error instanceof PrismaClientValidationError) {
       this.logger.debug('PrismaClientValidationError detected');
-      throw this.extendWithOriginalError(
-        ErrorFactory.createInternalServerError(
-          'DATABASE_VALIDATION_ERROR',
-          mergedMessages.validation,
-        ),
+      return this.extendWithOriginalError(
+        ErrorFactory.createInternalServerError(config.validation.code, config.validation.message),
         this.buildGraphQLErrorOptions(error),
       );
     }
 
     if (error instanceof PrismaClientInitializationError) {
       this.logger.debug('PrismaClientInitializationError detected');
-      throw this.extendWithOriginalError(
-        ErrorFactory.createInternalServerError(
-          'DATABASE_CONNECTION_ERROR',
-          mergedMessages.connection,
-        ),
+      return this.extendWithOriginalError(
+        ErrorFactory.createInternalServerError(config.connection.code, config.connection.message),
         this.buildGraphQLErrorOptions(error),
       );
     }
 
     if (error instanceof PrismaClientRustPanicError) {
       this.logger.error('PrismaClientRustPanicError detected');
-      throw this.extendWithOriginalError(
-        ErrorFactory.createInternalServerError('DATABASE_PANIC_ERROR', mergedMessages.unknown),
+      return this.extendWithOriginalError(
+        ErrorFactory.createInternalServerError(config.unknown.code, config.unknown.message),
         this.buildGraphQLErrorOptions(error),
       );
     }
 
     if (error instanceof PrismaClientUnknownRequestError) {
       this.logger.debug('PrismaClientUnknownRequestError detected');
-      throw this.extendWithOriginalError(
-        ErrorFactory.createInternalServerError('DATABASE_UNKNOWN_ERROR', mergedMessages.unknown),
+      return this.extendWithOriginalError(
+        ErrorFactory.createInternalServerError(config.unknown.code, config.unknown.message),
         this.buildGraphQLErrorOptions(error),
       );
     }
 
-    return this.handleUnknownError(error, mergedMessages);
+    return this.handleUnknownError(error, config);
   }
 
   /**
-   * Maneja errores no clasificados arrojando una excepción genérica.
+   * Combina la configuración personalizada con los valores por defecto.
+   *
+   * @param customConfig Configuración personalizada proporcionada por el módulo.
+   * @returns Configuración completa con todos los campos requeridos.
+   *
+   * @remarks
+   * Usa el patrón de spread para combinar la configuración.
+   * Si una categoría no se proporciona en customConfig, se usa el default completo.
+   * Si se proporciona, reemplaza completamente la categoría del default (code y message).
+   * El tipo ErrorConfig garantiza que cada categoría definida tenga ambas propiedades.
+   *
+   * @private
+   */
+  private mergeConfig(customConfig: HandlerOrmErrorConfig): Required<HandlerOrmErrorConfig> {
+    return {
+      ...HANDLER_ORM_ERRORS_DEFAULT_CONFIG,
+      ...customConfig,
+    } as Required<HandlerOrmErrorConfig>;
+  }
+
+  /**
+   * Maneja errores no clasificados retornando una excepción genérica.
+   *
    * @param error Error recibido desde el adaptador ORM.
-   * @param errorsMessages Mensajes configurados para el error.
-   * @returns Nunca retorna porque lanza una excepción.
-   * @throws DomainBaseError Siempre, encapsulando el error original.
+   * @param config Configuración completa de errores.
+   * @returns Instancia de DomainBaseError genérica.
+   *
+   * @private
    */
   private handleUnknownError(
     error: unknown,
-    errorsMessages: HandlerOrmErrorMessagesType,
+    config: Required<HandlerOrmErrorConfig>,
   ): DomainBaseError {
     this.logger.assign({ method: 'handleUnknownError' });
     this.logger.error({ error }, 'Unknown Prisma error detected');
     return this.extendWithOriginalError(
-      ErrorFactory.createInternalServerError('DATABASE_UNKNOWN_ERROR', errorsMessages.unknown),
+      ErrorFactory.createInternalServerError(config.unknown.code, config.unknown.message),
       this.buildGraphQLErrorOptions(error),
     );
   }
 
   /**
-   * Interpreta un PrismaClientKnownRequestError y lanza la excepción apropiada.
+   * Interpreta un PrismaClientKnownRequestError y retorna la excepción apropiada.
+   *
    * @param error Error conocido producido por Prisma durante la ejecución.
-   * @param errorMessages Mensajes configurados para cada categoría.
-   * @returns Nunca retorna porque lanza una excepción.
-   * @throws DomainBaseError Siempre lanza un error de dominio apropiado según el código.
+   * @param config Configuración completa de códigos y mensajes.
+   * @returns Instancia de DomainBaseError apropiada según el código de Prisma.
+   *
+   * @remarks
+   * Mapea códigos de error de Prisma a categorías de error de dominio:
+   * - P2002: Violación de constraint único → CONFLICT (409)
+   * - P2025: Registro no encontrado → NOT_FOUND (404)
+   * - P2003: Violación de clave foránea → INTERNAL_SERVER_ERROR (500)
+   * - P2011-P2020: Errores de validación → INTERNAL_SERVER_ERROR (500)
+   * - P1001-P1017: Errores de conexión → INTERNAL_SERVER_ERROR (500)
+   *
+   * @private
    */
   private handleKnownRequestError(
     error: PrismaClientKnownRequestError,
-    errorMessages: HandlerOrmErrorMessagesType,
+    config: Required<HandlerOrmErrorConfig>,
   ): DomainBaseError {
     const meta = (error.meta ?? {}) as PrismaErrorMeta;
     this.logger.assign({
@@ -144,22 +191,22 @@ export class HandlerOrmErrorsService {
       case 'P2002': // Unique constraint violation
         return this.extendWithOriginalError(
           ErrorFactory.createConflictError(
-            'UNIQUE_CONSTRAINT_VIOLATION',
-            errorMessages.uniqueConstraint,
+            config.uniqueConstraint.code,
+            config.uniqueConstraint.message,
             context,
           ),
           graphqlOptions,
         );
       case 'P2025': // Record not found
         return this.extendWithOriginalError(
-          ErrorFactory.createNotFoundError('RECORD_NOT_FOUND', errorMessages.notFound, context),
+          ErrorFactory.createNotFoundError(config.notFound.code, config.notFound.message, context),
           graphqlOptions,
         );
       case 'P2003': // Foreign key constraint violation
         return this.extendWithOriginalError(
           ErrorFactory.createInternalServerError(
-            'FOREIGN_KEY_CONSTRAINT_VIOLATION',
-            errorMessages.foreignKeyConstraint,
+            config.foreignKeyConstraint.code,
+            config.foreignKeyConstraint.message,
             context,
           ),
           graphqlOptions,
@@ -173,8 +220,8 @@ export class HandlerOrmErrorsService {
       case 'P2020': // Value out of range
         return this.extendWithOriginalError(
           ErrorFactory.createInternalServerError(
-            'DATABASE_VALIDATION_ERROR',
-            errorMessages.validation,
+            config.validation.code,
+            config.validation.message,
             context,
           ),
           graphqlOptions,
@@ -185,15 +232,19 @@ export class HandlerOrmErrorsService {
       case 'P1017': // Server has closed the connection
         return this.extendWithOriginalError(
           ErrorFactory.createInternalServerError(
-            'DATABASE_CONNECTION_ERROR',
-            errorMessages.connection,
+            config.connection.code,
+            config.connection.message,
             context,
           ),
           graphqlOptions,
         );
       default:
         return this.extendWithOriginalError(
-          ErrorFactory.createInternalServerError('DATABASE_ERROR', errorMessages.unknown, context),
+          ErrorFactory.createInternalServerError(
+            config.unknown.code,
+            config.unknown.message,
+            context,
+          ),
           graphqlOptions,
         );
     }
