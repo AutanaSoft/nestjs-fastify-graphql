@@ -10,6 +10,7 @@ import { UserRole } from '../../domain/enums';
 import { UserRepository } from '../../domain/repository';
 import { UserPermissionService } from '../../domain/services';
 import { UserCreateType, UserUpdateType } from '../../domain/types';
+import { USER_ORM_ERROR_CONFIG } from '../config/user-orm-errors.config';
 
 /**
  * Representa un usuario de Prisma con sus permisos cargados mediante relaciones anidadas.
@@ -192,12 +193,7 @@ export class UserPrismaAdapter implements UserRepository {
 
       return this.mapToDomain(result);
     } catch (err) {
-      return this.handlerOrmErrorsService.handleError(err, {
-        uniqueConstraint: 'User with this email or userName already exists',
-        foreignKeyConstraint: 'Invalid reference in user data',
-        validation: 'Invalid user data provided',
-        unknown: 'An unexpected error occurred while creating user',
-      });
+      return this.handlerOrmErrorsService.handleError(err, USER_ORM_ERROR_CONFIG);
     }
   }
 
@@ -281,13 +277,7 @@ export class UserPrismaAdapter implements UserRepository {
       // Descifrar email antes de mapear a entidad de dominio
       return this.mapToDomainWithoutPermissions(updated);
     } catch (err) {
-      return this.handlerOrmErrorsService.handleError(err, {
-        uniqueConstraint: 'User with this email or username already exists',
-        notFound: 'User not found',
-        foreignKeyConstraint: 'Invalid reference in user data',
-        validation: 'Invalid user data provided',
-        unknown: 'An unexpected error occurred while updating user',
-      });
+      return this.handlerOrmErrorsService.handleError(err, USER_ORM_ERROR_CONFIG);
     }
   }
 
@@ -340,11 +330,7 @@ export class UserPrismaAdapter implements UserRepository {
 
       return user ? this.mapToDomain(user) : null;
     } catch (err) {
-      return this.handlerOrmErrorsService.handleError(err, {
-        notFound: 'User with this ID not found',
-        validation: 'Invalid user data provided',
-        unknown: 'An unexpected error occurred while fetching user',
-      });
+      return this.handlerOrmErrorsService.handleError(err, USER_ORM_ERROR_CONFIG);
     }
   }
 
@@ -416,11 +402,7 @@ export class UserPrismaAdapter implements UserRepository {
 
       return user ? this.mapToDomain(user) : null;
     } catch (err) {
-      return this.handlerOrmErrorsService.handleError(err, {
-        notFound: 'User with this email not found',
-        validation: 'Invalid user data provided',
-        unknown: 'An unexpected error occurred while fetching user',
-      });
+      return this.handlerOrmErrorsService.handleError(err, USER_ORM_ERROR_CONFIG);
     }
   }
 
@@ -481,11 +463,7 @@ export class UserPrismaAdapter implements UserRepository {
 
       return users.map((user) => this.mapToDomain(user));
     } catch (err) {
-      return this.handlerOrmErrorsService.handleError(err, {
-        notFound: 'User with this criteria not found',
-        validation: 'Invalid user data provided',
-        unknown: 'An unexpected error occurred while fetching users',
-      });
+      return this.handlerOrmErrorsService.handleError(err, USER_ORM_ERROR_CONFIG);
     }
   }
 
