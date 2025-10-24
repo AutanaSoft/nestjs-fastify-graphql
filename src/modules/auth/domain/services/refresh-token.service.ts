@@ -1,14 +1,15 @@
 import { jwtConfig } from '@/config';
 import { CryptoService } from '@/shared/infrastructure/services';
+import { DomainBaseError } from '@/shared/domain/errors';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { randomBytes } from 'node:crypto';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { SessionEntity } from '../entities';
 import {
-  ExpiredRefreshTokenError,
-  InvalidRefreshTokenError,
-  RevokedRefreshTokenError,
+  createExpiredRefreshTokenError,
+  createInvalidRefreshTokenError,
+  createRevokedRefreshTokenError,
 } from '../errors';
 import { SessionRepository, SESSION_REPOSITORY } from '../repositories';
 import type { CreateSessionData, RefreshTokenContext } from '../types';
@@ -88,7 +89,9 @@ export class RefreshTokenService {
     };
 
     // Crear sesión en la base de datos
-    const session = await this.sessionRepository.create(sessionData);
+    const sessionResult = await this.sessionRepository.create(sessionData);
+    if (sessionResult instanceof DomainBaseError) throw sessionResult;
+    const session = sessionResult;
 
     this.logger.info({ sessionId: session.id, userId }, 'Session created with refresh token');
 
@@ -117,17 +120,19 @@ export class RefreshTokenService {
     const tokenHash = this.hashToken(opaqueToken);
 
     // Buscar sesión por hash
-    const session = await this.sessionRepository.findByRefreshTokenHash(tokenHash);
+    const sessionResult = await this.sessionRepository.findByRefreshTokenHash(tokenHash);
+    if (sessionResult instanceof DomainBaseError) throw sessionResult;
+    const session = sessionResult;
 
     if (!session) {
       this.logger.warn('Invalid refresh token - session not found');
-      throw new InvalidRefreshTokenError();
+      throw createInvalidRefreshTokenError();
     }
 
     // Verificar si el token ha expirado
     if (session.isExpired()) {
       this.logger.warn({ sessionId: session.id }, 'Refresh token has expired');
-      throw new ExpiredRefreshTokenError();
+      throw createExpiredRefreshTokenError();
     }
 
     // DETECCIÓN DE REUSO: Si el token está revocado pero se intenta usar
@@ -138,9 +143,13 @@ export class RefreshTokenService {
       );
 
       // Revocar TODAS las sesiones del usuario del mismo tipo
-      await this.sessionRepository.revokeAllUserSessions(session.userId, session.type);
+      const revokeResult = await this.sessionRepository.revokeAllUserSessions(
+        session.userId,
+        session.type,
+      );
+      if (revokeResult instanceof DomainBaseError) throw revokeResult;
 
-      throw new RevokedRefreshTokenError();
+      throw createRevokedRefreshTokenError();
     }
 
     this.logger.debug({ sessionId: session.id }, 'Refresh token validated successfully');
@@ -164,10 +173,13 @@ export class RefreshTokenService {
     this.logger.debug({ method: 'rotateToken', sessionId: currentSession.id });
 
     // Actualizar última fecha de uso de la sesión actual
-    await this.sessionRepository.updateLastUsedAt(currentSession.id);
+    const updateResult = await this.sessionRepository.updateLastUsedAt(currentSession.id);
+    if (updateResult instanceof DomainBaseError) throw updateResult;
 
     // Revocar la sesión actual
-    await this.sessionRepository.revokeSession(currentSession.id);
+    const revokeResult = await this.sessionRepository.revokeSession(currentSession.id);
+    if (revokeResult instanceof DomainBaseError) throw revokeResult;
+
     this.logger.debug({ sessionId: currentSession.id }, 'Current session revoked for rotation');
 
     // Crear nueva sesión con nuevo token
@@ -191,7 +203,8 @@ export class RefreshTokenService {
   async revokeSession(sessionId: string): Promise<void> {
     this.logger.debug({ method: 'revokeSession', sessionId });
 
-    await this.sessionRepository.revokeSession(sessionId);
+    const result = await this.sessionRepository.revokeSession(sessionId);
+    if (result instanceof DomainBaseError) throw result;
 
     this.logger.info({ sessionId }, 'Session revoked successfully');
   }
@@ -208,7 +221,9 @@ export class RefreshTokenService {
   async revokeAllUserSessions(userId: string, type?: string): Promise<number> {
     this.logger.debug({ method: 'revokeAllUserSessions', userId, type });
 
-    const count = await this.sessionRepository.revokeAllUserSessions(userId, type);
+    const countResult = await this.sessionRepository.revokeAllUserSessions(userId, type);
+    if (countResult instanceof DomainBaseError) throw countResult;
+    const count = countResult;
 
     this.logger.info({ userId, type, count }, 'All user sessions revoked');
 
@@ -226,7 +241,9 @@ export class RefreshTokenService {
   async cleanExpiredSessions(): Promise<number> {
     this.logger.debug({ method: 'cleanExpiredSessions' });
 
-    const count = await this.sessionRepository.cleanExpiredSessions();
+    const countResult = await this.sessionRepository.cleanExpiredSessions();
+    if (countResult instanceof DomainBaseError) throw countResult;
+    const count = countResult;
 
     this.logger.info({ count }, 'Expired sessions cleaned');
 
