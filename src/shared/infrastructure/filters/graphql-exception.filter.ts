@@ -30,15 +30,16 @@ export class GraphQLExceptionFilter implements ExceptionFilter {
    * @param exception Excepción recibida desde el resolver o capa de infraestructura.
    */
   catch(exception: unknown): void {
-    // Manejo de errores personalizados del dominio, aplicación e infraestructura
+    // Manejo de errores personalizados del dominio e infraestructura
     if (exception instanceof DomainBaseError || exception instanceof InfrastructureBaseError) {
-      // Registro selectivo: únicamente se registran errores que no provienen del dominio
-      if (!(exception instanceof DomainBaseError)) {
-        /* this.logger.error({
+      // Los errores de dominio NO se registran (son errores de negocio esperados)
+      // Los errores de infraestructura SÍ se registran (requieren atención)
+      if (exception instanceof InfrastructureBaseError) {
+        this.logger.error({
           message: exception.message,
           extensions: exception.extensions,
-          stack: exception instanceof Error ? exception.stack : undefined,
-        }); */
+          stack: exception.stack,
+        });
       }
 
       throw exception;
@@ -87,10 +88,17 @@ export class GraphQLExceptionFilter implements ExceptionFilter {
       let message: string;
       if (typeof response === 'string') {
         message = response;
-      } else if (typeof response.message === 'string') {
-        message = response.message;
-      } else if (Array.isArray(response.message)) {
-        message = (response.message as string[]).join(', ');
+      } else if (typeof response === 'object' && response !== null) {
+        // Manejo robusto de diferentes formatos de mensaje
+        if (typeof response.message === 'string') {
+          message = response.message;
+        } else if (Array.isArray(response.message)) {
+          // Validar que todos los elementos sean strings antes de hacer join
+          const messages = response.message.filter((msg) => typeof msg === 'string');
+          message = messages.length > 0 ? messages.join(', ') : exception.message;
+        } else {
+          message = exception.message;
+        }
       } else {
         message = exception.message;
       }
@@ -100,19 +108,25 @@ export class GraphQLExceptionFilter implements ExceptionFilter {
         extensions: {
           status: exception.getStatus(),
           code: exception.constructor.name.replace('Exception', '').toUpperCase(),
-          extensions: typeof response === 'object' ? response : {},
+          ...(typeof response === 'object' && response !== null ? response : {}),
         },
       };
     }
 
     // Manejo de errores desconocidos
+    const errorName = exception instanceof Error ? exception.constructor.name : 'Unknown';
+    const errorCode =
+      errorName !== 'Error' && errorName !== 'Unknown'
+        ? errorName.replace(/Error$/, '').toUpperCase() || 'INTERNAL_SERVER_ERROR'
+        : 'INTERNAL_SERVER_ERROR';
+
     return {
       message: exception instanceof Error ? exception.message : 'Internal server error',
       extensions: {
-        code: 'INTERNAL_SERVER_ERROR',
+        code: errorCode,
         status: HttpStatus.INTERNAL_SERVER_ERROR,
         timestamp: new Date().toISOString(),
-        error: exception instanceof Error ? exception.constructor.name : 'Unknown Error',
+        errorType: errorName,
       },
     };
   }

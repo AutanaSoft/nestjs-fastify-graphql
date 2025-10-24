@@ -1,4 +1,4 @@
-import { ConflictError, DataBaseError, NotFoundError } from '@/shared/domain/errors';
+import { DomainBaseError, ErrorFactory } from '@/shared/domain/errors';
 import { Injectable } from '@nestjs/common';
 import { GraphQLErrorOptions } from 'graphql';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
@@ -28,9 +28,7 @@ export class HandlerOrmErrorsService {
    * @param error Error capturado en la capa de infraestructura.
    * @param errorsMessages Mensajes personalizados por tipo de error.
    * @returns Nunca retorna porque siempre lanza una excepción.
-   * @throws NotFoundError Cuando el registro no existe (P2025).
-   * @throws ConflictError Cuando ocurre una violación de unicidad (P2002).
-   * @throws DataBaseError Cuando se detecta otro error de base de datos.
+   * @throws DomainBaseError Siempre lanza un error de dominio apropiado.
    */
   public handleError(
     error: unknown,
@@ -51,22 +49,40 @@ export class HandlerOrmErrorsService {
 
     if (error instanceof PrismaClientValidationError) {
       this.logger.debug('PrismaClientValidationError detected');
-      throw new DataBaseError(mergedMessages.validation, this.buildGraphQLErrorOptions(error));
+      throw this.extendWithOriginalError(
+        ErrorFactory.createInternalServerError(
+          'DATABASE_VALIDATION_ERROR',
+          mergedMessages.validation,
+        ),
+        this.buildGraphQLErrorOptions(error),
+      );
     }
 
     if (error instanceof PrismaClientInitializationError) {
       this.logger.debug('PrismaClientInitializationError detected');
-      throw new DataBaseError(mergedMessages.connection, this.buildGraphQLErrorOptions(error));
+      throw this.extendWithOriginalError(
+        ErrorFactory.createInternalServerError(
+          'DATABASE_CONNECTION_ERROR',
+          mergedMessages.connection,
+        ),
+        this.buildGraphQLErrorOptions(error),
+      );
     }
 
     if (error instanceof PrismaClientRustPanicError) {
       this.logger.error('PrismaClientRustPanicError detected');
-      throw new DataBaseError(mergedMessages.unknown, this.buildGraphQLErrorOptions(error));
+      throw this.extendWithOriginalError(
+        ErrorFactory.createInternalServerError('DATABASE_PANIC_ERROR', mergedMessages.unknown),
+        this.buildGraphQLErrorOptions(error),
+      );
     }
 
     if (error instanceof PrismaClientUnknownRequestError) {
       this.logger.debug('PrismaClientUnknownRequestError detected');
-      throw new DataBaseError(mergedMessages.unknown, this.buildGraphQLErrorOptions(error));
+      throw this.extendWithOriginalError(
+        ErrorFactory.createInternalServerError('DATABASE_UNKNOWN_ERROR', mergedMessages.unknown),
+        this.buildGraphQLErrorOptions(error),
+      );
     }
 
     return this.handleUnknownError(error, mergedMessages);
@@ -77,12 +93,15 @@ export class HandlerOrmErrorsService {
    * @param error Error recibido desde el adaptador ORM.
    * @param errorsMessages Mensajes configurados para el error.
    * @returns Nunca retorna porque lanza una excepción.
-   * @throws DataBaseError Siempre, encapsulando el error original.
+   * @throws DomainBaseError Siempre, encapsulando el error original.
    */
   private handleUnknownError(error: unknown, errorsMessages: HandlerOrmErrorMessagesType): never {
     this.logger.assign({ method: 'handleUnknownError' });
     this.logger.error({ error }, 'Unknown Prisma error detected');
-    throw new DataBaseError(errorsMessages.unknown, this.buildGraphQLErrorOptions(error));
+    throw this.extendWithOriginalError(
+      ErrorFactory.createInternalServerError('DATABASE_UNKNOWN_ERROR', errorsMessages.unknown),
+      this.buildGraphQLErrorOptions(error),
+    );
   }
 
   /**
@@ -90,9 +109,7 @@ export class HandlerOrmErrorsService {
    * @param error Error conocido producido por Prisma durante la ejecución.
    * @param errorMessages Mensajes configurados para cada categoría.
    * @returns Nunca retorna porque lanza una excepción.
-   * @throws NotFoundError Cuando el registro no existe (P2025).
-   * @throws ConflictError Cuando se incumple una restricción de unicidad (P2002).
-   * @throws DataBaseError Para otras violaciones o fallos de conexión.
+   * @throws DomainBaseError Siempre lanza un error de dominio apropiado según el código.
    */
   private handleKnownRequestError(
     error: PrismaClientKnownRequestError,
@@ -110,18 +127,39 @@ export class HandlerOrmErrorsService {
       },
     });
 
+    const context = {
+      prismaCode: error.code,
+      modelName: meta.modelName,
+      target: meta.target,
+      cause: meta.cause,
+      constraint: meta.constraint,
+    };
+
+    const graphqlOptions = this.buildGraphQLErrorOptions(error);
+
     switch (error.code) {
       case 'P2002': // Unique constraint violation
-        throw new ConflictError(
-          errorMessages.uniqueConstraint,
-          this.buildGraphQLErrorOptions(error),
+        throw this.extendWithOriginalError(
+          ErrorFactory.createConflictError(
+            'UNIQUE_CONSTRAINT_VIOLATION',
+            errorMessages.uniqueConstraint,
+            context,
+          ),
+          graphqlOptions,
         );
       case 'P2025': // Record not found
-        throw new NotFoundError(errorMessages.notFound, this.buildGraphQLErrorOptions(error));
+        throw this.extendWithOriginalError(
+          ErrorFactory.createNotFoundError('RECORD_NOT_FOUND', errorMessages.notFound, context),
+          graphqlOptions,
+        );
       case 'P2003': // Foreign key constraint violation
-        throw new DataBaseError(
-          errorMessages.foreignKeyConstraint,
-          this.buildGraphQLErrorOptions(error),
+        throw this.extendWithOriginalError(
+          ErrorFactory.createInternalServerError(
+            'FOREIGN_KEY_CONSTRAINT_VIOLATION',
+            errorMessages.foreignKeyConstraint,
+            context,
+          ),
+          graphqlOptions,
         );
       case 'P2011': // Null constraint violation
       case 'P2012': // Missing required value
@@ -130,14 +168,31 @@ export class HandlerOrmErrorsService {
       case 'P2015': // Related record not found
       case 'P2019': // Input error
       case 'P2020': // Value out of range
-        throw new DataBaseError(errorMessages.validation, this.buildGraphQLErrorOptions(error));
+        throw this.extendWithOriginalError(
+          ErrorFactory.createInternalServerError(
+            'DATABASE_VALIDATION_ERROR',
+            errorMessages.validation,
+            context,
+          ),
+          graphqlOptions,
+        );
       case 'P1001': // Can't reach database server
       case 'P1002': // Database server timeout
       case 'P1008': // Operations timed out
       case 'P1017': // Server has closed the connection
-        throw new DataBaseError(errorMessages.connection, this.buildGraphQLErrorOptions(error));
+        throw this.extendWithOriginalError(
+          ErrorFactory.createInternalServerError(
+            'DATABASE_CONNECTION_ERROR',
+            errorMessages.connection,
+            context,
+          ),
+          graphqlOptions,
+        );
       default:
-        throw new DataBaseError(errorMessages.unknown, this.buildGraphQLErrorOptions(error));
+        throw this.extendWithOriginalError(
+          ErrorFactory.createInternalServerError('DATABASE_ERROR', errorMessages.unknown, context),
+          graphqlOptions,
+        );
     }
   }
 
@@ -151,5 +206,31 @@ export class HandlerOrmErrorsService {
       return { originalError: error };
     }
     return undefined;
+  }
+
+  /**
+   * Extiende un error de dominio con el error original de Prisma.
+   * @param domainError Error de dominio creado por el factory.
+   * @param graphqlOptions Opciones de GraphQL con el error original.
+   * @returns El error de dominio con el originalError incluido.
+   *
+   * @remarks
+   * Este método es necesario porque ErrorFactory crea errores de dominio puros,
+   * pero necesitamos agregar el originalError de Prisma para mantener el stack trace
+   * completo en el contexto de GraphQL. Esto es especialmente útil para debugging.
+   */
+  private extendWithOriginalError(
+    domainError: DomainBaseError,
+    graphqlOptions: GraphQLErrorOptions | undefined,
+  ): DomainBaseError {
+    if (graphqlOptions?.originalError) {
+      // Extend the domain error with the original Prisma error
+      Object.defineProperty(domainError, 'originalError', {
+        value: graphqlOptions.originalError,
+        enumerable: true,
+        writable: false,
+      });
+    }
+    return domainError;
   }
 }
