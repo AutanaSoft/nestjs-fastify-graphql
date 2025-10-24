@@ -3,58 +3,82 @@ import { UserEntity } from '../entities';
 import { UserCreateType, UserUpdateType } from '../types/user';
 
 /**
- * Repository port for User aggregate persistence operations.
+ * Contrato del repositorio para operaciones de persistencia del agregado User.
  *
- * This contract abstracts data access for the User domain and must be implemented
- * by infrastructure adapters (e.g., TypeORM) to keep the domain layer framework-agnostic.
+ * Esta interfaz abstrae el acceso a datos del dominio User y debe ser implementada
+ * por adaptadores de infraestructura (e.g., TypeORM) para mantener la capa de dominio
+ * independiente del framework.
  *
  * @remarks
- * Implementations should map infrastructure errors to domain/application errors where appropriate
- * and must not leak ORM-specific types into the domain layer.
+ * Las implementaciones deben mapear errores de infraestructura a errores de dominio/aplicación
+ * cuando sea apropiado y no deben filtrar tipos específicos del ORM a la capa de dominio.
+ *
+ * Todos los métodos pueden retornar {@link DomainBaseError} para manejar fallos de persistencia
+ * de manera consistente sin lanzar excepciones directamente.
+ *
  * @public
  */
 export abstract class UserRepository {
   /**
-   * Persists a new User.
+   * Persiste un nuevo User en el sistema.
    *
-   * @param user - Immutable data required to create the user
-   * @returns A promise that resolves to the created {@link UserEntity}, including generated identifiers
-   * @throws Error Implementations may throw when persistence constraints are violated (e.g., unique email)
+   * @param user - Datos inmutables requeridos para crear el usuario
+   * @returns Promesa que resuelve a la {@link UserEntity} creada con identificadores generados,
+   *          o {@link DomainBaseError} si la operación falla
+   * @throws Las implementaciones pueden lanzar errores cuando se violan restricciones de persistencia
+   *         (e.g., email único ya existe)
    */
   abstract create(user: UserCreateType): Promise<UserEntity | DomainBaseError>;
 
   /**
-   * Applies partial changes to an existing User.
+   * Aplica cambios parciales a un User existente.
    *
-   * @param params - Data required to update the user
-   * @returns A promise that resolves to `true` if the update was successful; otherwise `false`
-   * @throws Error Implementations may throw when persistence constraints are violated (e.g., unique email)
-   * @remarks Partial updates are supported; only provided fields will be updated
+   * @param params - Datos requeridos para actualizar el usuario, incluyendo el identificador
+   * @returns Promesa que resuelve a la {@link UserEntity} actualizada si la operación fue exitosa,
+   *          o {@link DomainBaseError} si falla
+   * @throws Las implementaciones pueden lanzar errores cuando se violan restricciones de persistencia
+   *         (e.g., nuevo email ya está en uso)
+   * @remarks
+   * Se soportan actualizaciones parciales; solo los campos proporcionados serán modificados.
+   * El identificador en `params` debe corresponder a un usuario existente.
    */
   abstract update(params: UserUpdateType): Promise<UserEntity | DomainBaseError>;
 
   /**
-   * Retrieves a User by its identifier.
+   * Recupera un User por su identificador único.
    *
-   * @param id - User identifier
-   * @returns A promise that resolves to the {@link UserEntity} when found; otherwise `null`
+   * @param id - Identificador único del usuario
+   * @returns Promesa que resuelve a la {@link UserEntity} cuando se encuentra,
+   *          `null` cuando no existe, o {@link DomainBaseError} si la consulta falla
    */
   abstract findById(id: string): Promise<UserEntity | null | DomainBaseError>;
 
   /**
-   * Retrieves a User by email address.
+   * Recupera un User por su dirección de correo electrónico.
    *
-   * @param email - User email address
-   * @returns A promise that resolves to the {@link UserEntity} when found; otherwise `null`
+   * @param email - Dirección de correo electrónico del usuario
+   * @returns Promesa que resuelve a la {@link UserEntity} cuando se encuentra,
+   *          `null` cuando no existe, o {@link DomainBaseError} si la consulta falla
    */
   abstract findByEmail(email: string): Promise<UserEntity | null | DomainBaseError>;
 
   /**
-   * Returns all Users.
+   * Recupera todos los Users registrados en el sistema.
    *
-   * @returns A promise that resolves to an array of {@link UserEntity}; empty when none exist
+   * @returns Promesa que resuelve a un array de {@link UserEntity},
+   *          vacío cuando no existen usuarios, o {@link DomainBaseError} si la consulta falla
+   * @remarks
+   * Esta operación puede ser costosa en sistemas con muchos usuarios.
+   * Considere implementar paginación en casos de uso específicos.
    */
   abstract findAll(): Promise<UserEntity[] | DomainBaseError>;
 }
 
+/**
+ * Token de inyección de dependencias para el repositorio User.
+ *
+ * @remarks
+ * Utilice este símbolo para inyectar implementaciones del {@link UserRepository}
+ * en constructores de casos de uso o servicios de aplicación.
+ */
 export const USER_REPOSITORY = Symbol('UserRepository');
