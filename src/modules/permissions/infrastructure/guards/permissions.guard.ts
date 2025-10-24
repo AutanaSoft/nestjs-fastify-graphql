@@ -5,7 +5,7 @@ import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
-import { InsufficientPermissionsError } from '../../domain/errors';
+import { createInsufficientPermissionsError } from '../../domain/errors';
 import { PermissionMatcherService } from '../../domain/services';
 import { PERMISSIONS_KEY, RequiresPermissionsOptions } from '../decorators';
 
@@ -37,8 +37,8 @@ export class PermissionsGuard implements CanActivate {
    * Verifica si el usuario puede activar la ruta/resolver.
    *
    * @param context - Contexto de ejecución de NestJS
-   * @returns true si el usuario tiene permisos suficientes; de lo contrario lanza InsufficientPermissionsError
-   * @throws InsufficientPermissionsError cuando el usuario no tiene los permisos requeridos
+   * @returns true si el usuario tiene permisos suficientes; de lo contrario lanza DomainBaseError
+   * @throws DomainBaseError cuando el usuario no tiene los permisos requeridos
    */
   canActivate(context: ExecutionContext): boolean {
     // Obtener metadata de permisos requeridos
@@ -86,7 +86,7 @@ export class PermissionsGuard implements CanActivate {
         },
         'Insufficient permissions',
       );
-      throw new InsufficientPermissionsError(requiredPermissions);
+      throw createInsufficientPermissionsError(requiredPermissions);
     }
 
     return true;

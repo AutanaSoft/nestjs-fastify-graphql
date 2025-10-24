@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
-import { PermissionNotFoundError } from '../../domain/errors';
+import { createPermissionNotFoundError } from '../../domain/errors';
 import { PERMISSION_REPOSITORY, PermissionRepository } from '../../domain/repositories';
 import { AssignPermissionsResult } from '../../domain/types';
 import { AssignPermissionsArgsDto } from '../dto';
@@ -30,9 +30,7 @@ export class AssignPermissionsUseCase {
    *
    * @param args - Argumentos que contienen userId y permissionNames
    * @returns Resultado con permisos asignados y ya existentes
-   * @throws PermissionNotFoundError si algún permiso no existe
-   * @throws DataBaseError cuando ocurre un fallo de persistencia
-   * @throws NotFoundError si el usuario no existe
+   * @throws DomainBaseError si algún permiso no existe, el usuario no existe, o falla la persistencia
    */
   async execute(args: AssignPermissionsArgsDto): Promise<AssignPermissionsResult> {
     const { userId, permissionNames } = args.input;
@@ -46,7 +44,7 @@ export class AssignPermissionsUseCase {
 
     if (notFound.length > 0) {
       this.logger.warn({ userId, notFound }, 'Some permissions not found');
-      throw new PermissionNotFoundError(notFound[0]);
+      throw createPermissionNotFoundError(notFound[0]);
     }
 
     // Obtener permisos actuales del usuario

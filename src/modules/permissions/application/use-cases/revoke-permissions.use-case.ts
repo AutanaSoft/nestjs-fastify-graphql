@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
-import { PermissionNotFoundError } from '../../domain/errors';
+import { createPermissionNotFoundError } from '../../domain/errors';
 import { PERMISSION_REPOSITORY, PermissionRepository } from '../../domain/repositories';
 import { RevokePermissionsResult } from '../../domain/types';
 import { RevokePermissionsArgsDto } from '../dto';
@@ -29,8 +29,7 @@ export class RevokePermissionsUseCase {
    *
    * @param args - Argumentos que contienen userId y permissionNames
    * @returns Resultado con permisos revocados y no asignados
-   * @throws PermissionNotFoundError si algún permiso no existe
-   * @throws DataBaseError cuando ocurre un fallo de persistencia
+   * @throws DomainBaseError si algún permiso no existe o falla la persistencia
    */
   async execute(args: RevokePermissionsArgsDto): Promise<RevokePermissionsResult> {
     const { userId, permissionNames } = args.input;
@@ -44,7 +43,7 @@ export class RevokePermissionsUseCase {
 
     if (notFound.length > 0) {
       this.logger.warn({ userId, notFound }, 'Some permissions not found');
-      throw new PermissionNotFoundError(notFound[0]);
+      throw createPermissionNotFoundError(notFound[0]);
     }
 
     // Obtener permisos actuales del usuario

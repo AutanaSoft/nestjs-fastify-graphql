@@ -1,6 +1,1 @@
-export {
-  InsufficientPermissionsError,
-  PermissionAlreadyAssignedError,
-  PermissionNotAssignedError,
-  PermissionNotFoundError,
-} from './permission.errors';
+export * from './permission-error.helpers';
