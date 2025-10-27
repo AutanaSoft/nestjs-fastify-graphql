@@ -1,5 +1,5 @@
 import { cryptoConfig } from '@/config';
-import { DecryptionError, EncryptionError } from '@/shared/domain/errors';
+import { ErrorFactory } from '@/shared/domain/errors';
 import { decryptWithKey, deriveKey, encryptWithKey, hash } from '@/shared/infrastructure/utils';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
@@ -58,8 +58,14 @@ export class CryptoService {
       return encrypted;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error({ error: errorMessage, method: 'encrypt' }, 'Encryption failed');
-      throw new EncryptionError(`Encryption operation failed: ${errorMessage}`);
+      this.logger.error(
+        { error, service: 'CryptoService', method: 'encrypt' },
+        `Encryption failed: ${errorMessage}`,
+      );
+      throw ErrorFactory.createInternalServerError({
+        message: `Se ha producido un error durante al procesar la operación`,
+        code: 'INTERNAL_SERVER_ERROR',
+      });
     }
   }
 
@@ -87,8 +93,14 @@ export class CryptoService {
       return decrypted;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error({ error: errorMessage, method: 'decrypt' }, 'Decryption failed');
-      throw new DecryptionError(`Decryption operation failed: ${errorMessage}`);
+      this.logger.error(
+        { error, service: 'CryptoService', method: 'decrypt' },
+        `Decryption failed: ${errorMessage}`,
+      );
+      throw ErrorFactory.createInternalServerError({
+        message: `Se ha producido un error durante al procesar la operación`,
+        code: 'INTERNAL_SERVER_ERROR',
+      });
     }
   }
 
