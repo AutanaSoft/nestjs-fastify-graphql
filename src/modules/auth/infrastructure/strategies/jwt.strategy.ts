@@ -1,7 +1,11 @@
 import { jwtConfig } from '@/config';
 import { UserEntity } from '@/modules/users/domain/entities';
 import { USER_REPOSITORY, UserRepository } from '@/modules/users/domain/repository';
-import { InvalidTokenDomainException, TokenExpiredDomainException } from '@/shared/domain/errors';
+import {
+  DomainBaseError,
+  InvalidTokenDomainException,
+  TokenExpiredDomainException,
+} from '@/shared/domain/errors';
 import { JwtPayload } from '@/shared/domain/types';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
@@ -64,7 +68,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     try {
       // Buscar el usuario actual en la base de datos (incluye permisos)
-      const currentUser = await this.userRepository.findById(payload.sub);
+      const userResult = await this.userRepository.findById(payload.sub);
+      if (userResult instanceof DomainBaseError) throw userResult;
+      const currentUser = userResult;
+
       if (!currentUser) {
         this.logger.warn({ userId: payload.sub }, 'User not found in database');
         throw new InvalidTokenDomainException();
@@ -79,7 +86,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     } catch (error: unknown) {
       if (
         error instanceof InvalidTokenDomainException ||
-        error instanceof TokenExpiredDomainException
+        error instanceof TokenExpiredDomainException ||
+        error instanceof DomainBaseError
       ) {
         throw error;
       }

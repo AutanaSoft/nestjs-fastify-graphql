@@ -1,6 +1,6 @@
 import { USER_REPOSITORY, UserRepository } from '@/modules/users/domain/repository';
 import { JwtTokenService } from '@/shared/applications/services';
-import { NotFoundError } from '@/shared/domain/errors';
+import { DomainBaseError, NotFoundError } from '@/shared/domain/errors';
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { RefreshTokenService } from '../../domain/services';
@@ -45,7 +45,9 @@ export class RefreshAccessTokenUseCase {
     this.logger.debug({ userId: currentSession.userId }, 'Refresh token validated');
 
     // 2. Obtener datos del usuario
-    const user = await this.userRepository.findById(currentSession.userId);
+    const userResult = await this.userRepository.findById(currentSession.userId);
+    if (userResult instanceof DomainBaseError) throw userResult;
+    const user = userResult;
 
     if (!user) {
       this.logger.error(
