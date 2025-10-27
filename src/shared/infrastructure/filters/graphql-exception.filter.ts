@@ -1,21 +1,7 @@
-import { DomainBaseError } from '@/shared/domain/errors';
-import { Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
+import { ApiReturnError, AppInternalError, ErrorFactory } from '@/shared/domain/errors';
+import { Catch, ExceptionFilter } from '@nestjs/common';
 import { GraphQLError } from 'graphql';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { InfrastructureBaseError } from '../errors';
-
-/**
- * @internal
- * @remarks Representa la estructura normalizada que se expone como error en GraphQL.
- */
-interface ErrorResponse {
-  message: string;
-  extensions: {
-    code: string;
-    status: HttpStatus;
-    [key: string]: unknown;
-  };
-}
 
 @Catch()
 export class GraphQLExceptionFilter implements ExceptionFilter {
@@ -25,109 +11,87 @@ export class GraphQLExceptionFilter implements ExceptionFilter {
   ) {}
 
   /**
+   * Gestiona cualquier excepción lanzada en el flujo GraphQL y la transforma a un formato estándar.
+   *
+   * @param exception - Excepción recibida desde el resolver o capa de infraestructura
+   *
+   * @remarks
+   * Implementa una estrategia de manejo de errores en cuatro niveles:
+   * 1. ApiReturnError: Errores esperados del cliente (log debug)
+   * 2. AppInternalError: Errores críticos del sistema (log error + sanitizar)
+   * 3. GraphQLError: Errores del framework GraphQL (log warn)
+   * 4. Unknown: Errores completamente inesperados (log error + sanitizar)
+   *
    * @public
-   * @remarks Gestiona cualquier excepción lanzada en el flujo GraphQL y la transforma a un formato estándar.
-   * @param exception Excepción recibida desde el resolver o capa de infraestructura.
    */
   catch(exception: unknown): void {
-    // Manejo de errores personalizados del dominio e infraestructura
-    if (exception instanceof DomainBaseError || exception instanceof InfrastructureBaseError) {
-      // Los errores de dominio NO se registran (son errores de negocio esperados)
-      // Los errores de infraestructura SÍ se registran (requieren atención)
-      if (exception instanceof InfrastructureBaseError) {
-        this.logger.error({
-          message: exception.message,
-          extensions: exception.extensions,
-          stack: exception.stack,
-        });
-      }
-
-      throw exception;
-    }
-
-    // Manejo de errores nativos de GraphQL preservando metadatos
-    if (exception instanceof GraphQLError) {
-      this.logger.warn({
-        message: exception.message,
-        extensions: exception.extensions,
-        stack: exception.stack,
-      });
-
-      throw exception;
-    }
-
-    // Para el resto de errores se realiza una normalización del mensaje y sus extensiones
-    const errorResponse = this.normalizeError(exception);
-
-    // Registro de detalles para errores que no provienen de GraphQL
-    this.logger.error({
-      ...errorResponse,
-      stack: exception instanceof Error ? exception.stack : undefined,
-    });
-
-    // Creación del error con el formato requerido por GraphQL
-    const graphqlError = new GraphQLError(errorResponse.message, {
-      extensions: {
-        ...errorResponse.extensions,
-      },
-    });
-
-    throw graphqlError;
-  }
-
-  /**
-   * @remarks Convierte excepciones de NestJS u otras fuentes en un objeto compatible con GraphQL.
-   * @param exception Excepción desconocida a estandarizar.
-   * @returns ErrorResponse con campos listos para exponerse en GraphQL.
-   */
-  private normalizeError(exception: unknown): ErrorResponse {
-    // Manejo de excepciones HTTP propias de NestJS
-    if (exception instanceof HttpException) {
-      const response = exception.getResponse() as string | Record<string, unknown>;
-
-      let message: string;
-      if (typeof response === 'string') {
-        message = response;
-      } else if (typeof response === 'object' && response !== null) {
-        // Manejo robusto de diferentes formatos de mensaje
-        if (typeof response.message === 'string') {
-          message = response.message;
-        } else if (Array.isArray(response.message)) {
-          // Validar que todos los elementos sean strings antes de hacer join
-          const messages = response.message.filter((msg) => typeof msg === 'string');
-          message = messages.length > 0 ? messages.join(', ') : exception.message;
-        } else {
-          message = exception.message;
-        }
-      } else {
-        message = exception.message;
-      }
-
-      return {
-        message: String(message),
-        extensions: {
-          status: exception.getStatus(),
-          code: exception.constructor.name.replace('Exception', '').toUpperCase(),
-          ...(typeof response === 'object' && response !== null ? response : {}),
+    // 1. Errores de API (cliente) - Errores esperados de validación y reglas de negocio
+    if (exception instanceof ApiReturnError) {
+      this.logger.debug(
+        {
+          code: exception.extensions?.code,
+          status: exception.extensions?.status,
+          method: exception.extensions?.method,
+          service: exception.extensions?.service,
         },
-      };
+        `API Error: ${exception.message}`,
+      );
+      throw exception;
     }
 
-    // Manejo de errores desconocidos
-    const errorName = exception instanceof Error ? exception.constructor.name : 'Unknown';
-    const errorCode =
-      errorName !== 'Error' && errorName !== 'Unknown'
-        ? errorName.replace(/Error$/, '').toUpperCase() || 'INTERNAL_SERVER_ERROR'
-        : 'INTERNAL_SERVER_ERROR';
+    // 2. Errores internos del sistema - Errores críticos que requieren investigación
+    if (exception instanceof AppInternalError) {
+      const error = exception?.originalError || exception.extensions?.originalError;
+      this.logger.error(
+        {
+          code: exception.extensions?.code,
+          status: exception.extensions?.status,
+          service: exception.extensions?.service,
+          method: exception.extensions?.method,
+          error,
+          stack: error instanceof Error ? error.stack : undefined,
+        },
+        `Internal System Error: ${exception.message}`,
+      );
 
-    return {
-      message: exception instanceof Error ? exception.message : 'Internal server error',
-      extensions: {
-        code: errorCode,
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        timestamp: new Date().toISOString(),
-        errorType: errorName,
+      // Devuelve error genérico al cliente sin exponer detalles internos
+      throw ErrorFactory.createInternalServerError({
+        message: 'An unexpected error occurred. Please try again later.',
+        code: 'INTERNAL_SERVER_ERROR',
+      });
+    }
+
+    // 3. Errores nativos de GraphQL - Errores del framework (sintaxis, validación, etc.)
+    if (exception instanceof GraphQLError) {
+      const stack = exception instanceof Error ? exception.stack : undefined;
+      this.logger.warn(
+        {
+          error: exception,
+          stack,
+          code: exception.extensions?.code,
+          status: exception.extensions?.status,
+        },
+        `GraphQL Error: ${exception.message}`,
+      );
+      throw exception;
+    }
+
+    // 4. Errores desconocidos - Errores completamente inesperados
+    const error = exception instanceof Error ? exception : undefined;
+    const errorMessage = error ? error.message : 'Non-error thrown';
+    const stack = error ? error.stack : undefined;
+
+    this.logger.error(
+      {
+        error,
+        stack,
       },
-    };
+      `Unknown Error: ${errorMessage}`,
+    );
+
+    throw ErrorFactory.createInternalServerError({
+      message: 'An unexpected error occurred. Please try again later.',
+      code: 'INTERNAL_SERVER_ERROR',
+    });
   }
 }

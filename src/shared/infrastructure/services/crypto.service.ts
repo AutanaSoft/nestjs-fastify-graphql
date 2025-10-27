@@ -58,13 +58,16 @@ export class CryptoService {
       return encrypted;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(
-        { error, service: 'CryptoService', method: 'encrypt' },
-        `Encryption failed: ${errorMessage}`,
-      );
       throw ErrorFactory.createInternalServerError({
-        message: `Se ha producido un error durante al procesar la operación`,
-        code: 'INTERNAL_SERVER_ERROR',
+        message: `Encryption failed: ${errorMessage}`,
+        code: 'ENCRYPTION_ERROR',
+        options: {
+          originalError: error instanceof Error ? error : undefined,
+          extensions: {
+            service: 'CryptoService',
+            method: 'encrypt',
+          },
+        },
       });
     }
   }
@@ -93,13 +96,16 @@ export class CryptoService {
       return decrypted;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(
-        { error, service: 'CryptoService', method: 'decrypt' },
-        `Decryption failed: ${errorMessage}`,
-      );
       throw ErrorFactory.createInternalServerError({
-        message: `Se ha producido un error durante al procesar la operación`,
+        message: `Decryption failed: ${errorMessage}`,
         code: 'INTERNAL_SERVER_ERROR',
+        options: {
+          originalError: error instanceof Error ? error : undefined,
+          extensions: {
+            service: 'CryptoService',
+            method: 'decrypt',
+          },
+        },
       });
     }
   }
