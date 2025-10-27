@@ -1,114 +1,96 @@
-import { HttpStatus } from '@nestjs/common';
 import { GraphQLError, GraphQLErrorOptions } from 'graphql';
 
 /**
- * Error base del dominio para mapear errores a GraphQL.
+ * Clase base para todos los errores del dominio.
+ *
+ * Extiende GraphQLError para garantizar compatibilidad con el sistema GraphQL.
+ * Todos los errores personalizados del dominio deben heredar de esta clase.
+ *
+ * @remarks
+ * Restaura la cadena de prototipos para garantizar que instanceof funcione correctamente
+ * con clases que hereden de esta.
+ *
  * @public
  */
 export class DomainBaseError extends GraphQLError {
   /**
-   * Crea una instancia de error de dominio base.
-   * @param message Mensaje legible para las personas.
-   * @param options Opciones adicionales de GraphQL.
+   * @param message - Mensaje de error legible para humanos
+   * @param options - Opciones adicionales de GraphQLError (extensions, nodes, etc.)
    */
   constructor(message: string, options?: GraphQLErrorOptions) {
     super(message, options);
     this.name = this.constructor.name;
-    Object.setPrototypeOf(this, new.target.prototype); // Restore prototype chain.
+    Object.setPrototypeOf(this, new.target.prototype);
   }
 }
 
 /**
- * Error de dominio cuando la base de datos falla.
+ * Error base para errores que se retornan al cliente.
+ *
+ * Utiliza esta clase para errores de validación, reglas de negocio
+ * o cualquier error que deba ser mostrado al usuario final.
+ *
+ * @remarks
+ * Estos errores no deben contener información sensible del sistema.
+ *
+ * @public
+ */
+export class ApiReturnError extends DomainBaseError {
+  /**
+   * @param message - Mensaje de error apropiado para mostrar al cliente
+   * @param options - Opciones adicionales de GraphQLError
+   */
+  constructor(message: string, options?: GraphQLErrorOptions) {
+    super(message, options);
+    this.name = this.constructor.name;
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+/**
+ * Error base para fallos de conexión o operaciones con bases de datos.
+ *
+ * Utiliza esta clase para errores relacionados con operaciones de persistencia,
+ * consultas fallidas, conexiones perdidas o violaciones de restricciones.
+ *
+ * @remarks
+ * Estos errores generalmente deben ser registrados y no expuestos directamente
+ * al cliente en producción.
+ *
  * @public
  */
 export class DataBaseError extends DomainBaseError {
   /**
-   * Crea un error de base de datos.
-   * @param message Mensaje legible para las personas.
-   * @param options Opciones adicionales para GraphQL.
+   * @param message - Descripción del error de base de datos
+   * @param options - Opciones adicionales de GraphQLError
    */
   constructor(message: string, options?: GraphQLErrorOptions) {
-    super(message, {
-      ...options,
-      extensions: {
-        code: 'DATA_BASE_SERVER_ERROR',
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        ...options?.extensions,
-      },
-    });
+    super(message, options);
     this.name = this.constructor.name;
     Object.setPrototypeOf(this, new.target.prototype);
   }
 }
 
 /**
- * Error de conflicto en el dominio cuando la operación no es válida.
+ * Error base para errores internos de la aplicación.
+ *
+ * Utiliza esta clase para errores inesperados del sistema que requieren
+ * ser registrados y potencialmente enviados a un servicio de monitoreo.
+ *
+ * @remarks
+ * Estos errores deben ser siempre registrados con nivel error e incluir
+ * contexto completo para facilitar la depuración. No deben exponer
+ * detalles internos al cliente.
+ *
  * @public
  */
-export class ConflictError extends DomainBaseError {
+export class AppInternalError extends DomainBaseError {
   /**
-   * Crea un error de conflicto.
-   * @param message Mensaje legible para las personas.
-   * @param options Opciones adicionales para GraphQL.
+   * @param message - Descripción técnica del error interno
+   * @param options - Opciones adicionales de GraphQLError
    */
   constructor(message: string, options?: GraphQLErrorOptions) {
-    super(message, {
-      ...options,
-      extensions: {
-        code: 'CONFLICT',
-        status: HttpStatus.CONFLICT,
-        ...options?.extensions,
-      },
-    });
-    this.name = this.constructor.name;
-    Object.setPrototypeOf(this, new.target.prototype);
-  }
-}
-
-/**
- * Error de dominio cuando no se encuentra un recurso.
- * @public
- */
-export class NotFoundError extends DomainBaseError {
-  /**
-   * Crea un error de recurso no encontrado.
-   * @param message Mensaje legible para las personas.
-   * @param options Opciones adicionales para GraphQL.
-   */
-  constructor(message: string, options?: GraphQLErrorOptions) {
-    super(message, {
-      ...options,
-      extensions: {
-        code: 'NOT_FOUND',
-        status: HttpStatus.NOT_FOUND,
-        ...options?.extensions,
-      },
-    });
-    this.name = this.constructor.name;
-    Object.setPrototypeOf(this, new.target.prototype);
-  }
-}
-
-/**
- * Error de dominio cuando un servicio externo falla.
- * @public
- */
-export class ExternalServiceError extends DomainBaseError {
-  /**
-   * Crea un error por fallo externo.
-   * @param message Mensaje legible para las personas.
-   * @param options Opciones adicionales para GraphQL.
-   */
-  constructor(message: string, options?: GraphQLErrorOptions) {
-    super(message, {
-      ...options,
-      extensions: {
-        code: 'EXTERNAL_SERVICE_ERROR',
-        status: HttpStatus.BAD_GATEWAY,
-        ...options?.extensions,
-      },
-    });
+    super(message, options);
     this.name = this.constructor.name;
     Object.setPrototypeOf(this, new.target.prototype);
   }
