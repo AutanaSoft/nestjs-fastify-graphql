@@ -1,7 +1,7 @@
 import { jwtConfig } from '@/config';
 import { UserEntity } from '@/modules/users/domain/entities';
 import { JwtTempTokenType } from '@/shared/domain/enums';
-import { InvalidTokenDomainException, TokenExpiredDomainException } from '@/shared/domain/errors';
+import { ErrorFactory } from '@/shared/domain/errors';
 import { JwtPayload, JwtTokenResult, TempTokenPayload } from '@/shared/domain/types';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
@@ -122,12 +122,16 @@ export class JwtTokenService {
     } catch (error: unknown) {
       if (error instanceof Error && error.name === 'TokenExpiredError') {
         this.logger.warn('Token has expired');
-        throw new TokenExpiredDomainException();
+        throw ErrorFactory.createUnauthorizedError({
+          code: 'TOKEN_EXPIRED',
+          message: 'The token has expired',
+        });
       }
 
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.warn({ error: errorMessage }, 'Invalid token');
-      throw new InvalidTokenDomainException();
+      throw ErrorFactory.createUnauthorizedError({
+        code: 'INVALID_TOKEN',
+        message: 'Invalid token',
+      });
     }
   }
 
@@ -174,9 +178,19 @@ export class JwtTokenService {
         createdAt,
         expiredAt,
       };
-    } catch (error: unknown) {
-      this.logger.error({ error }, `Failed to generate ${tokenType}`);
-      throw new Error(`Failed to generate ${tokenType}`);
+    } catch (err: unknown) {
+      const error = err as Error;
+      throw ErrorFactory.createInternalServerError({
+        message: `Failed to generate ${tokenType.toLowerCase()}`,
+        code: 'TOKEN_GENERATION_FAILED',
+        options: {
+          originalError: error,
+          extensions: {
+            service: 'JwtTokenService',
+            method: 'generateToken',
+          },
+        },
+      });
     }
   }
 
@@ -268,24 +282,36 @@ export class JwtTokenService {
   private validateBasePayloadStructure(payload: unknown): void {
     if (typeof payload !== 'object' || payload === null) {
       this.logger.warn('Invalid payload structure: payload must be an object');
-      throw new InvalidTokenDomainException();
+      throw ErrorFactory.createUnauthorizedError({
+        code: 'INVALID_TOKEN',
+        message: 'Invalid token',
+      });
     }
 
     const typedPayload = payload as Record<string, unknown>;
 
     if (!typedPayload.sub || !typedPayload.user) {
       this.logger.warn('Invalid payload structure: missing sub or user');
-      throw new InvalidTokenDomainException();
+      throw ErrorFactory.createUnauthorizedError({
+        code: 'INVALID_TOKEN',
+        message: 'Invalid token',
+      });
     }
 
     if (typeof typedPayload.sub !== 'string') {
       this.logger.warn('Invalid payload structure: sub must be a string');
-      throw new InvalidTokenDomainException();
+      throw ErrorFactory.createUnauthorizedError({
+        code: 'INVALID_TOKEN',
+        message: 'Invalid token',
+      });
     }
 
     if (typeof typedPayload.user !== 'object' || typedPayload.user === null) {
       this.logger.warn('Invalid payload structure: user must be an object');
-      throw new InvalidTokenDomainException();
+      throw ErrorFactory.createUnauthorizedError({
+        code: 'INVALID_TOKEN',
+        message: 'Invalid token',
+      });
     }
   }
 
@@ -298,7 +324,10 @@ export class JwtTokenService {
   private validateTempTokenType(payload: TempTokenPayload): void {
     if (!payload.type) {
       this.logger.warn('Invalid temp token payload structure: missing type');
-      throw new InvalidTokenDomainException();
+      throw ErrorFactory.createUnauthorizedError({
+        code: 'INVALID_TOKEN',
+        message: 'Invalid token',
+      });
     }
 
     // Validar que el tipo sea un valor válido del enum
@@ -307,7 +336,10 @@ export class JwtTokenService {
         { type: payload.type },
         'Invalid temp token payload structure: invalid type',
       );
-      throw new InvalidTokenDomainException();
+      throw ErrorFactory.createUnauthorizedError({
+        code: 'INVALID_TOKEN',
+        message: 'Invalid token',
+      });
     }
   }
 }

@@ -47,7 +47,7 @@ export class ErrorFactory {
    *
    * @param params.message - Mensaje de error legible
    * @param params.code - Código de error personalizado
-   * @param params.options - Opciones adicionales de GraphQL
+   * @param params.options {GraphQLErrorOptions} - Opciones adicionales de GraphQL
    * @returns Error con estado HTTP 404
    *
    * @example
@@ -76,7 +76,7 @@ export class ErrorFactory {
    *
    * @param params.message - Mensaje de error legible
    * @param params.code - Código de error personalizado
-   * @param params.options - Opciones adicionales de GraphQL
+   * @param params.options {GraphQLErrorOptions} - Opciones adicionales de GraphQL
    * @returns Error con estado HTTP 409
    *
    * @example
@@ -88,8 +88,8 @@ export class ErrorFactory {
    * });
    * ```
    */
-  static createConflictError(params: ErrorParameters): ApiReturnError {
-    const { message, code, options } = params;
+  static createConflictError(parameters: ErrorParameters): ApiReturnError {
+    const { message, code, options } = parameters;
     return ErrorFactory.createApiError(message, {
       ...options,
       extensions: {
@@ -105,7 +105,7 @@ export class ErrorFactory {
    *
    * @param params.message - Mensaje de error legible
    * @param params.code - Código de error personalizado
-   * @param params.options - Opciones adicionales de GraphQL
+   * @param params.options {GraphQLErrorOptions} - Opciones adicionales de GraphQL
    * @returns Error con estado HTTP 403
    *
    * @example
@@ -117,8 +117,8 @@ export class ErrorFactory {
    * });
    * ```
    */
-  static createForbiddenError(params: ErrorParameters): ApiReturnError {
-    const { message, code, options } = params;
+  static createForbiddenError(parameters: ErrorParameters): ApiReturnError {
+    const { message, code, options } = parameters;
     return ErrorFactory.createApiError(message, {
       ...options,
       extensions: {
@@ -134,7 +134,7 @@ export class ErrorFactory {
    *
    * @param params.message - Mensaje de error legible
    * @param params.code - Código de error personalizado
-   * @param params.options - Opciones adicionales de GraphQL
+   * @param params.options {GraphQLErrorOptions} - Opciones adicionales de GraphQL
    * @returns Error con estado HTTP 401
    *
    * @example
@@ -146,8 +146,8 @@ export class ErrorFactory {
    * });
    * ```
    */
-  static createUnauthorizedError(params: ErrorParameters): ApiReturnError {
-    const { message, code, options } = params;
+  static createUnauthorizedError(parameters: ErrorParameters): ApiReturnError {
+    const { message, code, options } = parameters;
     return ErrorFactory.createApiError(message, {
       ...options,
       extensions: {
@@ -163,7 +163,7 @@ export class ErrorFactory {
    *
    * @param params.message - Mensaje de error legible
    * @param params.code - Código de error personalizado
-   * @param params.options - Opciones adicionales de GraphQL
+   * @param params.options {GraphQLErrorOptions} - Opciones adicionales de GraphQL
    * @returns Error con estado HTTP 400
    *
    * @example
@@ -175,8 +175,8 @@ export class ErrorFactory {
    * });
    * ```
    */
-  static createBadRequestError(params: ErrorParameters): ApiReturnError {
-    const { message, code, options } = params;
+  static createBadRequestError(parameters: ErrorParameters): ApiReturnError {
+    const { message, code, options } = parameters;
     return ErrorFactory.createApiError(message, {
       ...options,
       extensions: {
@@ -192,7 +192,7 @@ export class ErrorFactory {
    *
    * @param params.message - Mensaje de error legible
    * @param params.code - Código de error personalizado
-   * @param params.options - Opciones adicionales de GraphQL
+   * @param params.options {GraphQLErrorOptions} - Opciones adicionales de GraphQL
    * @returns Error con estado HTTP 500
    *
    * @example
@@ -204,8 +204,8 @@ export class ErrorFactory {
    * });
    * ```
    */
-  static createInternalServerError(params: ErrorParameters): ApiReturnError {
-    const { message, code, options } = params;
+  static createInternalServerError(parameters: ErrorParameters): ApiReturnError {
+    const { message, code, options } = parameters;
     return ErrorFactory.createApiError(message, {
       ...options,
       extensions: {
@@ -221,7 +221,7 @@ export class ErrorFactory {
    *
    * @param params.message - Mensaje de error legible
    * @param params.code - Código de error personalizado
-   * @param params.options - Opciones adicionales de GraphQL
+   * @param params.options {GraphQLErrorOptions} - Opciones adicionales de GraphQL
    * @returns Error con estado HTTP 502
    *
    * @example
@@ -233,8 +233,8 @@ export class ErrorFactory {
    * });
    * ```
    */
-  static createBadGatewayError(params: ErrorParameters): ApiReturnError {
-    const { message, code, options } = params;
+  static createBadGatewayError(parameters: ErrorParameters): ApiReturnError {
+    const { message, code, options } = parameters;
     return ErrorFactory.createApiError(message, {
       ...options,
       extensions: {
@@ -250,7 +250,7 @@ export class ErrorFactory {
    *
    * @param params.message - Mensaje de error legible
    * @param params.code - Código de error personalizado
-   * @param params.options - Opciones adicionales de GraphQL
+   * @param params.options {GraphQLErrorOptions} - Opciones adicionales de GraphQL
    * @returns Error interno con estado HTTP 503
    *
    * @example
@@ -262,14 +262,48 @@ export class ErrorFactory {
    * });
    * ```
    */
-  static createDataBaseError(params: ErrorParameters): AppInternalError {
-    const { message, code, options } = params;
+  static createDataBaseError(parameters: ErrorParameters): AppInternalError {
+    const { message, code, options } = parameters;
     return ErrorFactory.createAppError(message, {
       ...options,
       extensions: {
         ...options?.extensions,
         code: code,
         status: HttpStatus.SERVICE_UNAVAILABLE,
+      },
+    });
+  }
+
+  /**
+   * Crea un error interno de aplicación (500).
+   *
+   * @param params.message - Mensaje de error legible
+   * @param params.code - Código de error personalizado
+   * @param params.options {GraphQLErrorOptions} - Opciones adicionales de GraphQL
+   * @returns Error interno con estado HTTP 500
+   *
+   * @remarks
+   * Este método es similar a createInternalServerError pero retorna un
+   * AppInternalError en lugar de ApiReturnError, útil para errores internos
+   * de la aplicación que no deben exponerse directamente al cliente.
+   *
+   * @example
+   * ```typescript
+   * throw ErrorFactory.createAppInternalError({
+   *   message: 'Critical application error occurred',
+   *   code: 'APP_CRITICAL_ERROR',
+   *   options: { extensions: { component: 'auth-service', operation: 'validateToken' } }
+   * });
+   * ```
+   */
+  static createAppInternalError(parameters: ErrorParameters): AppInternalError {
+    const { message, code, options } = parameters;
+    return ErrorFactory.createAppError(message, {
+      ...options,
+      extensions: {
+        ...options?.extensions,
+        code: code,
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
       },
     });
   }
