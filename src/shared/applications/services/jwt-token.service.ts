@@ -1,7 +1,7 @@
 import { jwtConfig } from '@/config';
 import { UserEntity } from '@/modules/users/domain/entities';
 import { JwtTempTokenType } from '@/shared/domain/enums';
-import { ErrorFactory } from '@/shared/domain/errors';
+import { ApiReturnError, createInvalidTokenError, ErrorFactory } from '@/shared/domain/errors';
 import { JwtPayload, JwtTokenResult, TempTokenPayload } from '@/shared/domain/types';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
@@ -9,15 +9,14 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 /**
- * Servicio para la generación y validación de tokens JWT.
- *
- * Proporciona funcionalidad para crear tokens de acceso y tokens temporales
- * (refresh, reset password, forgot password), así como para validar tokens existentes.
+ * Servicio que gestiona emisión y validación de tokens JWT.
  *
  * @public
  */
 @Injectable()
 export class JwtTokenService {
+  private static readonly invalidTokenMessage = 'Invalid token';
+
   constructor(
     private readonly jwtService: JwtService,
     @Inject(jwtConfig.KEY)
@@ -27,45 +26,47 @@ export class JwtTokenService {
   ) {}
 
   /**
-   * Genera un token de acceso JWT para un usuario autenticado.
+   * Genera un token de acceso para el usuario autenticado.
    *
-   * @param user - Entidad del usuario para el cual se genera el token
-   * @returns Objeto con el token generado y sus fechas de creación y expiración
-   * @throws Error si falla la generación del token
+   * @param user - Usuario del cual se emiten claims
+   * @returns Token con fechas de emisión y expiración
+   * @throws Error si la firma del token falla
    */
   async generateAccessToken(user: UserEntity): Promise<JwtTokenResult> {
-    this.logger.info({ method: 'generateAccessToken', userId: user.id });
+    this.logger.assign({ method: 'generateAccessToken' });
+    this.logger.info('Generating access token');
+    try {
+      // Crear una copia del usuario sin el password por seguridad
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password, ...userWithoutPassword } = user;
 
-    // Crear una copia del usuario sin el password por seguridad
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...userWithoutPassword } = user;
+      const tokenPayload: JwtPayload = {
+        sub: user.id,
+        user: userWithoutPassword,
+      };
 
-    const tokenPayload: JwtPayload = {
-      sub: user.id,
-      user: userWithoutPassword,
-    };
-
-    return this.generateToken(tokenPayload, this.config.expiresIn);
+      return this.generateToken(tokenPayload, this.config.expiresIn);
+    } catch (error: unknown) {
+      this.logger.error({ error }, 'Failed to generate access token');
+      throw ErrorFactory.createInternalServerError('ACCESS_TOKEN_GENERATION_FAILED');
+    }
   }
 
   /**
-   * Genera un token temporal JWT según el tipo especificado.
+   * Genera un token temporal según el tipo solicitado.
    *
-   * Los tipos de tokens temporales incluyen: refresh token, reset password
-   * y forgot password. Cada tipo tiene su propia configuración de expiración.
-   *
-   * @param sub - Identificador del sujeto del token (típicamente user ID o email)
-   * @param user - Entidad del usuario asociada al token
-   * @param type - Tipo de token temporal a generar
-   * @returns Objeto con el token generado y sus fechas de creación y expiración
-   * @throws Error si falla la generación del token
+   * @param sub - Identificador del sujeto del token
+   * @param user - Usuario asociado al token temporal
+   * @param type - Tipo de token temporal requerido
+   * @returns Token temporal con metadatos de expiración
+   * @throws Error si la firma del token falla
    */
   async generateTempToken(
     sub: string,
     user: UserEntity,
     type: JwtTempTokenType,
   ): Promise<JwtTokenResult> {
-    this.logger.info({ method: 'generateTempToken' });
+    this.logger.assign({ method: 'generateTempToken' });
 
     try {
       const expiresIn = this.getTempTokenExpiration(type);
@@ -83,24 +84,69 @@ export class JwtTokenService {
       return this.generateToken(payload, expiresIn);
     } catch (error: unknown) {
       this.logger.error({ error }, 'Failed to generate temporary token');
-      throw new Error('Failed to generate temporary token');
+      throw ErrorFactory.createInternalServerError('TEMP_TOKEN_GENERATION_FAILED');
     }
   }
 
   /**
-   * Valida un token JWT y extrae su payload.
+   * Firma un token JWT con la configuración indicada.
    *
-   * Verifica la firma, expiración, emisor, audiencia y estructura del token.
-   * Aplica validación base común y validación específica según el tipo de token.
+   * @param payload - Datos que se incluirán en el token
+   * @param expiresIn - Tiempo de expiración configurado
+   * @returns Token firmado con fechas de emisión y caducidad
+   * @throws Error si la generación del token produce errores
+   */
+  private async generateToken(
+    payload: JwtPayload | TempTokenPayload,
+    expiresIn: string | number,
+  ): Promise<JwtTokenResult> {
+    this.logger.assign({ method: 'generateToken' });
+    // Determinar tipo de token para logging
+    let tokenType = 'Access token';
+
+    // Si el payload tiene campo 'type', es un token temporal
+    if ('type' in payload) {
+      tokenType = `Temp token (${payload.type})`;
+    }
+
+    try {
+      // Fecha de creación del token
+      const createdAt = new Date();
+
+      // Generar el token
+      const token = await this.jwtService.signAsync(payload, {
+        expiresIn: expiresIn as never,
+        issuer: this.config.issuer,
+        audience: this.config.audience,
+      });
+
+      // Calcular fecha de expiración
+      const expiredAt = this.calculateExpirationDate(expiresIn, createdAt);
+
+      return {
+        token,
+        createdAt,
+        expiredAt,
+      };
+    } catch (err: unknown) {
+      const error = err as Error;
+
+      this.logger.error({ error }, `Failed to generate ${tokenType.toLowerCase()}`);
+
+      throw ErrorFactory.createInternalServerError('TOKEN_GENERATION_FAILED');
+    }
+  }
+
+  /**
+   * Valida un token JWT y retorna su payload verificando claims.
    *
-   * @typeParam T - Tipo del payload esperado, por defecto JwtPayload
-   * @param token - Token JWT a validar
-   * @returns Payload del token validado
-   * @throws TokenExpiredDomainException si el token ha expirado
-   * @throws InvalidTokenDomainException si el token es inválido o la verificación falla
+   * @typeParam T - Tipo de payload esperado
+   * @param token - Token JWT a verificar
+   * @returns Payload validado sin modificar
+   * @throws ApiReturnError si la validación del token falla
    */
   async validateToken<T extends object = JwtPayload>(token: string): Promise<T> {
-    this.logger.info({ method: 'validateToken' });
+    this.logger.assign({ method: 'validateToken' });
 
     try {
       const payload = await this.jwtService.verifyAsync<T>(token, {
@@ -117,17 +163,22 @@ export class JwtTokenService {
         this.validateTempTokenType(payload);
       }
 
-      this.logger.debug('Token validated successfully');
       return payload;
     } catch (error: unknown) {
+      // manejar error de token expirado
       if (error instanceof Error && error.name === 'TokenExpiredError') {
-        this.logger.warn('Token has expired');
         throw ErrorFactory.createUnauthorizedError({
           code: 'TOKEN_EXPIRED',
           message: 'The token has expired',
         });
       }
 
+      // si el error es de tipo ApiReturnError, se retorna tal cual
+      if (error instanceof ApiReturnError) {
+        throw error;
+      }
+
+      this.logger.warn({ error }, 'Token validation failed');
       throw ErrorFactory.createUnauthorizedError({
         code: 'INVALID_TOKEN',
         message: 'Invalid token',
@@ -136,69 +187,10 @@ export class JwtTokenService {
   }
 
   /**
-   * Genera un token JWT con el payload y configuración especificados.
+   * Obtiene la caducidad asociada a un token temporal.
    *
-   * @param payload - Datos a incluir en el token (JwtPayload o TempTokenPayload)
-   * @param expiresIn - Tiempo de expiración del token
-   * @returns Objeto con el token generado y metadata temporal
-   * @throws Error si falla la generación del token
-   */
-  private async generateToken(
-    payload: JwtPayload | TempTokenPayload,
-    expiresIn: string | number,
-  ): Promise<JwtTokenResult> {
-    // Determinar tipo de token para logging
-    let tokenType = 'Access token';
-
-    // Si el payload tiene campo 'type', es un token temporal
-    if ('type' in payload) {
-      tokenType = `Temp token (${payload.type})`;
-    }
-
-    this.logger.info({ method: 'generateToken', tokenType });
-
-    try {
-      // Fecha de creación del token
-      const createdAt = new Date();
-
-      // Generar el token
-      const token = await this.jwtService.signAsync(payload, {
-        expiresIn: expiresIn as never,
-        issuer: this.config.issuer,
-        audience: this.config.audience,
-      });
-
-      // Calcular fecha de expiración
-      const expiredAt = this.calculateExpirationDate(expiresIn, createdAt);
-
-      this.logger.info(`${tokenType} generated successfully`);
-
-      return {
-        token,
-        createdAt,
-        expiredAt,
-      };
-    } catch (err: unknown) {
-      const error = err as Error;
-      throw ErrorFactory.createInternalServerError({
-        message: `Failed to generate ${tokenType.toLowerCase()}`,
-        code: 'TOKEN_GENERATION_FAILED',
-        options: {
-          originalError: error,
-          extensions: {
-            service: 'JwtTokenService',
-            method: 'generateToken',
-          },
-        },
-      });
-    }
-  }
-
-  /**
-   * Obtiene el tiempo de expiración configurado para un tipo de token temporal.
-   *
-   * @param type - Tipo de token temporal
-   * @returns Tiempo de expiración como string (ej: '15m', '1h', '7d')
+   * @param type - Tipo de token temporal solicitado
+   * @returns Duración configurada para el token
    */
   private getTempTokenExpiration(type: JwtTempTokenType): string {
     switch (type) {
@@ -214,11 +206,11 @@ export class JwtTokenService {
   }
 
   /**
-   * Calcula la fecha de expiración basándose en la duración y fecha de creación.
+   * Calcula la fecha de caducidad a partir de una duración dada.
    *
-   * @param duration - Duración del token (ej: '1h', '7d', '60m', o número en segundos)
-   * @param createdAt - Fecha de creación del token
-   * @returns Fecha de expiración calculada
+   * @param duration - Duración expresada en formato válido
+   * @param createdAt - Fecha de emisión del token
+   * @returns Fecha exacta de caducidad
    */
   private calculateExpirationDate(duration: string | number, createdAt: Date): Date {
     let milliseconds: number;
@@ -235,12 +227,10 @@ export class JwtTokenService {
   }
 
   /**
-   * Parsea una duración en formato string a milisegundos.
+   * Transforma una duración con sufijo en milisegundos.
    *
-   * Soporta formatos: 's' (segundos), 'm' (minutos), 'h' (horas), 'd' (días)
-   *
-   * @param duration - Duración en formato string (ej: '7d', '24h', '60m')
-   * @returns Duración en milisegundos
+   * @param duration - Duración con sufijo s, m, h o d
+   * @returns Duración equivalente en milisegundos
    */
   private parseDuration(duration: string): number {
     const match = duration.match(/^(\d+)([smhd])$/);
@@ -264,82 +254,83 @@ export class JwtTokenService {
   }
 
   /**
-   * Verifica si el payload es de tipo TempTokenPayload.
+   * Verifica que el payload contenga los campos mínimos requeridos.
    *
-   * @param payload - Payload a verificar
-   * @returns true si es un TempTokenPayload, false si es otro tipo
+   * @param payload - Datos obtenidos tras validar el token
+   * @throws ApiReturnError si la estructura es inválida
+   */
+  private validateBasePayloadStructure(payload: unknown): void {
+    this.logger.assign({ method: 'validateBasePayloadStructure' });
+
+    if (typeof payload !== 'object' || payload === null) {
+      this.logger.warn(
+        { reason: 'payload_not_object' },
+        'Invalid payload structure: payload must be an object',
+      );
+      throw createInvalidTokenError(JwtTokenService.invalidTokenMessage);
+    }
+
+    const typedPayload = payload as Record<string, unknown>;
+
+    if (!typedPayload.sub || !typedPayload.user) {
+      this.logger.warn(
+        { reason: 'missing_sub_or_user' },
+        'Invalid payload structure: missing sub or user fields',
+      );
+      throw createInvalidTokenError(JwtTokenService.invalidTokenMessage);
+    }
+
+    if (typeof typedPayload.sub !== 'string') {
+      this.logger.warn(
+        { reason: 'sub_not_string', currentType: typeof typedPayload.sub },
+        'Invalid payload structure: sub must be a string',
+      );
+      throw createInvalidTokenError(JwtTokenService.invalidTokenMessage);
+    }
+
+    if (typeof typedPayload.user !== 'object' || typedPayload.user === null) {
+      this.logger.warn(
+        { reason: 'user_not_object', currentType: typeof typedPayload.user },
+        'Invalid payload structure: user must be an object',
+      );
+      throw createInvalidTokenError(JwtTokenService.invalidTokenMessage);
+    }
+  }
+
+  /**
+   * Determina si el payload corresponde a un token temporal.
+   *
+   * @param payload - Datos a clasificar
+   * @returns Verdadero cuando el payload es temporal
    */
   private isTempTokenPayload(payload: unknown): payload is TempTokenPayload {
     return typeof payload === 'object' && payload !== null && 'type' in payload;
   }
 
   /**
-   * Valida la estructura base de un payload JWT (campos comunes).
+   * Valida que el tipo del token temporal pertenezca al enum válido.
    *
-   * @param payload - Payload JWT a validar
-   * @throws InvalidTokenDomainException si la estructura base es inválida
-   */
-  private validateBasePayloadStructure(payload: unknown): void {
-    if (typeof payload !== 'object' || payload === null) {
-      this.logger.warn('Invalid payload structure: payload must be an object');
-      throw ErrorFactory.createUnauthorizedError({
-        code: 'INVALID_TOKEN',
-        message: 'Invalid token',
-      });
-    }
-
-    const typedPayload = payload as Record<string, unknown>;
-
-    if (!typedPayload.sub || !typedPayload.user) {
-      this.logger.warn('Invalid payload structure: missing sub or user');
-      throw ErrorFactory.createUnauthorizedError({
-        code: 'INVALID_TOKEN',
-        message: 'Invalid token',
-      });
-    }
-
-    if (typeof typedPayload.sub !== 'string') {
-      this.logger.warn('Invalid payload structure: sub must be a string');
-      throw ErrorFactory.createUnauthorizedError({
-        code: 'INVALID_TOKEN',
-        message: 'Invalid token',
-      });
-    }
-
-    if (typeof typedPayload.user !== 'object' || typedPayload.user === null) {
-      this.logger.warn('Invalid payload structure: user must be an object');
-      throw ErrorFactory.createUnauthorizedError({
-        code: 'INVALID_TOKEN',
-        message: 'Invalid token',
-      });
-    }
-  }
-
-  /**
-   * Valida el tipo específico de un token temporal.
-   *
-   * @param payload - Payload de token temporal a validar
-   * @throws InvalidTokenDomainException si el tipo es inválido
+   * @param payload - Datos del token temporal
+   * @throws ApiReturnError si el tipo no es admitido
    */
   private validateTempTokenType(payload: TempTokenPayload): void {
+    this.logger.assign({ method: 'validateTempTokenType' });
+
     if (!payload.type) {
-      this.logger.warn('Invalid temp token payload structure: missing type');
-      throw ErrorFactory.createUnauthorizedError({
-        code: 'INVALID_TOKEN',
-        message: 'Invalid token',
-      });
+      this.logger.warn(
+        { reason: 'missing_type' },
+        'Invalid temp token payload structure: missing type',
+      );
+      throw createInvalidTokenError(JwtTokenService.invalidTokenMessage);
     }
 
     // Validar que el tipo sea un valor válido del enum
     if (!Object.values(JwtTempTokenType).includes(payload.type)) {
       this.logger.warn(
-        { type: payload.type },
+        { reason: 'invalid_type', type: payload.type },
         'Invalid temp token payload structure: invalid type',
       );
-      throw ErrorFactory.createUnauthorizedError({
-        code: 'INVALID_TOKEN',
-        message: 'Invalid token',
-      });
+      throw createInvalidTokenError(JwtTokenService.invalidTokenMessage);
     }
   }
 }

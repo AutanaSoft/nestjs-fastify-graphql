@@ -204,13 +204,21 @@ export class ErrorFactory {
    * });
    * ```
    */
-  static createInternalServerError(parameters: ErrorParameters): ApiReturnError {
-    const { message, code, options } = parameters;
+
+  /**
+   * Crea un error interno del servidor con mensaje genérico.
+   *
+   * @param code - Código opcional incluido en las extensiones
+   * @returns Instancia de ApiReturnError con estado 500
+   *
+   * @remarks
+   * Si no se indica un código se usa INTERNAL_SERVER_ERROR por defecto.
+   */
+  static createInternalServerError(code?: string): ApiReturnError {
+    const message = 'An unexpected error occurred. Please try again later.';
     return ErrorFactory.createApiError(message, {
-      ...options,
       extensions: {
-        ...options?.extensions,
-        code: code,
+        code: code ?? 'INTERNAL_SERVER_ERROR',
         status: HttpStatus.INTERNAL_SERVER_ERROR,
       },
     });
