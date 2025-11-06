@@ -21,7 +21,6 @@ async function bootstrap() {
   const FastifyModule = new FastifyAdapter();
 
   // Enable Helmet for security headers
-  // @ts-expect-error - Typings may be outdated
   FastifyModule.register(fastifyHelmet, _helmetConfig);
 
   // CORS configuration
