@@ -1,31 +1,32 @@
 import { jwtConfig } from '@/config';
 import { UserEntity } from '@/modules/users/domain/entities';
 import { USER_REPOSITORY, UserRepository } from '@/modules/users/domain/repository';
-import {
-  DomainBaseError,
-  InvalidTokenDomainException,
-  TokenExpiredDomainException,
-} from '@/shared/domain/errors';
+import { DomainBaseError } from '@/shared/domain/errors';
 import { JwtPayload } from '@/shared/domain/types';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { createInvalidCredentialsError } from '../../domain/errors';
 
 /**
- * Estrategia de autenticación JWT que extiende PassportStrategy.
+ * Estrategia de autenticación JWT para validar tokens de acceso.
  *
- * Valida tokens JWT extraídos del header Authorization y verifica
- * que el usuario asociado exista en la base de datos con sus permisos actualizados.
+ * Implementa la validación de tokens JWT usando Passport.js. Extrae el token del header
+ * Authorization, verifica su firma y expiración, y recupera el usuario completo desde
+ * la base de datos con sus permisos actualizados.
  *
  * @remarks
- * Esta estrategia se ejecuta automáticamente cuando se usa el guard JwtAuthGuard.
- * Extrae el token del header `Authorization: Bearer <token>`, lo valida contra
- * el secreto configurado y recupera el usuario completo con sus permisos.
+ * - Se ejecuta automáticamente al usar `@UseGuards(JwtAuthGuard)`
+ * - Extrae el token del header `Authorization: Bearer <token>`
+ * - Valida firma, expiración, issuer y audience del token
+ * - Recupera el usuario actualizado desde la base de datos (incluye permisos)
+ * - Si el usuario no existe, se considera el token como inválido (seguridad)
  *
- * @throws {InvalidTokenDomainException} Si el token es inválido o el usuario no existe
- * @throws {TokenExpiredDomainException} Si el token ha expirado
+ * @throws {InvalidCredentialsError} Cuando el token es inválido o el usuario no existe
+ *
+ * @public
  */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -47,17 +48,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   /**
-   * Valida el payload del token JWT y recupera el usuario completo.
+   * Valida el payload del JWT y recupera el usuario actualizado desde la base de datos.
    *
-   * @param payload - Payload decodificado del token JWT que contiene sub (userId) y user
-   * @returns Entidad del usuario con sus permisos actualizados desde la base de datos
+   * Este método es invocado automáticamente por Passport después de verificar la firma,
+   * expiración, issuer y audience del token. Recupera el usuario completo con sus permisos
+   * actualizados para garantizar que los datos en el contexto de la petición sean actuales.
    *
-   * @throws {InvalidTokenDomainException} Si el usuario no existe en la base de datos
+   * @param payload - Payload decodificado del token conteniendo `sub` (userId) y `user`
+   * @returns Entidad del usuario con permisos actualizados desde la base de datos
+   *
+   * @throws {InvalidCredentialsError} Cuando el usuario no existe en la base de datos
    *
    * @remarks
-   * Este método es invocado automáticamente por Passport después de verificar
-   * la firma, expiración y estructura del token. Solo se encarga de verificar
-   * que el usuario todavía existe en la base de datos y retorna la entidad actualizada.
+   * Seguridad: Si el usuario no existe, se lanza el mismo error que para credenciales
+   * inválidas para evitar revelar si el usuario existe o no (prevención de enumeración).
    */
   async validate(payload: JwtPayload): Promise<UserEntity> {
     this.logger.debug({
@@ -74,7 +78,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
       if (!currentUser) {
         this.logger.warn({ userId: payload.sub }, 'User not found in database');
-        throw new InvalidTokenDomainException();
+        throw createInvalidCredentialsError();
       }
 
       this.logger.debug(
@@ -84,17 +88,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
       return currentUser;
     } catch (error: unknown) {
-      if (
-        error instanceof InvalidTokenDomainException ||
-        error instanceof TokenExpiredDomainException ||
-        error instanceof DomainBaseError
-      ) {
+      if (error instanceof DomainBaseError) {
         throw error;
       }
 
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error({ error: errorMessage }, 'JWT validation failed');
-      throw new InvalidTokenDomainException();
+      throw createInvalidCredentialsError();
     }
   }
 }

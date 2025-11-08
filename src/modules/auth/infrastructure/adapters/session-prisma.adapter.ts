@@ -1,6 +1,5 @@
-import { PrismaService, HandlerOrmErrorsService } from '@/shared/applications/services';
+import { HandlerOrmErrorsService, PrismaService } from '@/shared/applications/services';
 import { SessionType } from '@/shared/domain/enums';
-import { DomainBaseError } from '@/shared/domain/errors';
 import { Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { SessionEntity } from '../../domain/entities';
@@ -29,9 +28,9 @@ export class SessionPrismaAdapter implements SessionRepository {
    * Crea una nueva sesión en la base de datos.
    *
    * @param data Datos para crear la sesión
-   * @returns Sesión creada o error de dominio
+   * @returns Sesión creada
    */
-  async create(data: CreateSessionData): Promise<SessionEntity | DomainBaseError> {
+  async create(data: CreateSessionData): Promise<SessionEntity> {
     this.logger.debug({ method: 'create', userId: data.userId });
 
     try {
@@ -49,7 +48,7 @@ export class SessionPrismaAdapter implements SessionRepository {
       this.logger.info({ sessionId: session.id }, 'Session created successfully');
       return this.toDomain(session);
     } catch (error) {
-      return this.handlerOrmErrorsService.handleError(error, SESSION_ORM_ERROR_CONFIG);
+      throw this.handlerOrmErrorsService.handleError(error, SESSION_ORM_ERROR_CONFIG);
     }
   }
 
@@ -57,11 +56,9 @@ export class SessionPrismaAdapter implements SessionRepository {
    * Busca una sesión por el hash del refresh token.
    *
    * @param refreshTokenHash Hash SHA-256 del refresh token
-   * @returns Sesión encontrada, null si no existe, o error de dominio
+   * @returns Sesión encontrada, null si no existe
    */
-  async findByRefreshTokenHash(
-    refreshTokenHash: string,
-  ): Promise<SessionEntity | null | DomainBaseError> {
+  async findByRefreshTokenHash(refreshTokenHash: string): Promise<SessionEntity | null> {
     this.logger.debug({ method: 'findByRefreshTokenHash' });
 
     try {
@@ -76,7 +73,7 @@ export class SessionPrismaAdapter implements SessionRepository {
 
       return this.toDomain(session);
     } catch (error) {
-      return this.handlerOrmErrorsService.handleError(error, SESSION_ORM_ERROR_CONFIG);
+      throw this.handlerOrmErrorsService.handleError(error, SESSION_ORM_ERROR_CONFIG);
     }
   }
 
@@ -84,9 +81,9 @@ export class SessionPrismaAdapter implements SessionRepository {
    * Busca una sesión por su ID.
    *
    * @param sessionId ID de la sesión
-   * @returns Sesión encontrada, null si no existe, o error de dominio
+   * @returns Sesión encontrada, null si no existe
    */
-  async findById(sessionId: string): Promise<SessionEntity | null | DomainBaseError> {
+  async findById(sessionId: string): Promise<SessionEntity | null> {
     this.logger.debug({ method: 'findById', sessionId });
 
     try {
@@ -101,7 +98,7 @@ export class SessionPrismaAdapter implements SessionRepository {
 
       return this.toDomain(session);
     } catch (error) {
-      return this.handlerOrmErrorsService.handleError(error, SESSION_ORM_ERROR_CONFIG);
+      throw this.handlerOrmErrorsService.handleError(error, SESSION_ORM_ERROR_CONFIG);
     }
   }
 
@@ -109,9 +106,9 @@ export class SessionPrismaAdapter implements SessionRepository {
    * Revoca una sesión específica.
    *
    * @param sessionId ID de la sesión a revocar
-   * @returns Sesión revocada o error de dominio
+   * @returns Sesión revocada
    */
-  async revokeSession(sessionId: string): Promise<SessionEntity | DomainBaseError> {
+  async revokeSession(sessionId: string): Promise<SessionEntity> {
     this.logger.debug({ method: 'revokeSession', sessionId });
 
     try {
@@ -126,7 +123,7 @@ export class SessionPrismaAdapter implements SessionRepository {
       this.logger.info({ sessionId }, 'Session revoked successfully');
       return this.toDomain(session);
     } catch (error) {
-      return this.handlerOrmErrorsService.handleError(error, SESSION_ORM_ERROR_CONFIG);
+      throw this.handlerOrmErrorsService.handleError(error, SESSION_ORM_ERROR_CONFIG);
     }
   }
 
@@ -135,9 +132,9 @@ export class SessionPrismaAdapter implements SessionRepository {
    *
    * @param userId ID del usuario
    * @param type Tipo de sesión opcional (WEB, MOBILE, API)
-   * @returns Número de sesiones revocadas o error de dominio
+   * @returns Número de sesiones revocadas
    */
-  async revokeAllUserSessions(userId: string, type?: string): Promise<number | DomainBaseError> {
+  async revokeAllUserSessions(userId: string, type?: string): Promise<number> {
     this.logger.debug({ method: 'revokeAllUserSessions', userId, type });
 
     try {
@@ -160,7 +157,7 @@ export class SessionPrismaAdapter implements SessionRepository {
 
       return result.count;
     } catch (error) {
-      return this.handlerOrmErrorsService.handleError(error, SESSION_ORM_ERROR_CONFIG);
+      throw this.handlerOrmErrorsService.handleError(error, SESSION_ORM_ERROR_CONFIG);
     }
   }
 
@@ -168,9 +165,9 @@ export class SessionPrismaAdapter implements SessionRepository {
    * Actualiza la fecha de último uso de una sesión.
    *
    * @param sessionId ID de la sesión
-   * @returns Sesión actualizada o error de dominio
+   * @returns Sesión actualizada
    */
-  async updateLastUsedAt(sessionId: string): Promise<SessionEntity | DomainBaseError> {
+  async updateLastUsedAt(sessionId: string): Promise<SessionEntity> {
     this.logger.debug({ method: 'updateLastUsedAt', sessionId });
 
     try {
@@ -181,16 +178,16 @@ export class SessionPrismaAdapter implements SessionRepository {
 
       return this.toDomain(session);
     } catch (error) {
-      return this.handlerOrmErrorsService.handleError(error, SESSION_ORM_ERROR_CONFIG);
+      throw this.handlerOrmErrorsService.handleError(error, SESSION_ORM_ERROR_CONFIG);
     }
   }
 
   /**
    * Elimina sesiones expiradas de la base de datos.
    *
-   * @returns Número de sesiones eliminadas o error de dominio
+   * @returns Número de sesiones eliminadas
    */
-  async cleanExpiredSessions(): Promise<number | DomainBaseError> {
+  async cleanExpiredSessions(): Promise<number> {
     this.logger.debug({ method: 'cleanExpiredSessions' });
 
     try {
@@ -203,7 +200,7 @@ export class SessionPrismaAdapter implements SessionRepository {
       this.logger.info({ count: result.count }, 'Expired sessions cleaned');
       return result.count;
     } catch (error) {
-      return this.handlerOrmErrorsService.handleError(error, SESSION_ORM_ERROR_CONFIG);
+      throw this.handlerOrmErrorsService.handleError(error, SESSION_ORM_ERROR_CONFIG);
     }
   }
 
@@ -211,9 +208,9 @@ export class SessionPrismaAdapter implements SessionRepository {
    * Cuenta el número de sesiones activas de un usuario.
    *
    * @param userId ID del usuario
-   * @returns Número de sesiones activas o error de dominio
+   * @returns Número de sesiones activas
    */
-  async countActiveSessions(userId: string): Promise<number | DomainBaseError> {
+  async countActiveSessions(userId: string): Promise<number> {
     this.logger.debug({ method: 'countActiveSessions', userId });
 
     try {
@@ -227,7 +224,7 @@ export class SessionPrismaAdapter implements SessionRepository {
 
       return count;
     } catch (error) {
-      return this.handlerOrmErrorsService.handleError(error, SESSION_ORM_ERROR_CONFIG);
+      throw this.handlerOrmErrorsService.handleError(error, SESSION_ORM_ERROR_CONFIG);
     }
   }
 

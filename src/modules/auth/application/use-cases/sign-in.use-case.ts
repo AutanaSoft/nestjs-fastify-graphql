@@ -68,7 +68,7 @@ export class SignInUseCase {
     // Verificar estado de la cuenta
     if (!user.emailVerified) {
       this.logger.warn({ userId: user.id }, 'Sign-in failed: Email not verified');
-      throw createAccountNotVerifiedError(user.email);
+      throw createAccountNotVerifiedError();
     }
 
     if (user.status === UserStatus.SUSPENDED || user.status === UserStatus.BANNED) {

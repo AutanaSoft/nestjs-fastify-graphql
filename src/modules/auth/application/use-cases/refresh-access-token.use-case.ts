@@ -1,8 +1,9 @@
 import { USER_REPOSITORY, UserRepository } from '@/modules/users/domain/repository';
 import { JwtTokenService } from '@/shared/applications/services';
-import { DomainBaseError, NotFoundError } from '@/shared/domain/errors';
+import { DomainBaseError } from '@/shared/domain/errors';
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { createInvalidRefreshTokenError } from '../../domain/errors';
 import { RefreshTokenService } from '../../domain/services';
 import type { RefreshTokenContext, RefreshTokenResult } from '../../domain/types';
 
@@ -54,7 +55,7 @@ export class RefreshAccessTokenUseCase {
         { userId: currentSession.userId },
         'User not found for valid refresh token',
       );
-      throw new NotFoundError(`User with id ${currentSession.userId} not found`);
+      throw createInvalidRefreshTokenError('Invalid or expired refresh token');
     }
 
     // 3. Generar nuevo access token
