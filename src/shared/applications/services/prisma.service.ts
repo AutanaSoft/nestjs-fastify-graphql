@@ -1,3 +1,4 @@
+import { ErrorFactory } from '@/shared/domain/errors';
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
@@ -27,7 +28,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       this.logger.info('Database connection established successfully');
     } catch (error: unknown) {
       this.logger.error({ error }, 'Failed to connect to database');
-      throw error;
+      throw ErrorFactory.createAppInternalError({
+        code: 'DB_CONNECTION_FAILED',
+        message: 'Failed to connect to the database',
+      });
     }
   }
 
@@ -42,7 +46,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       this.logger.info('Database connection closed successfully');
     } catch (error: unknown) {
       this.logger.error({ error }, 'Failed to disconnect from database');
-      throw error;
+      throw ErrorFactory.createAppInternalError({
+        code: 'DB_DISCONNECTION_FAILED',
+        message: 'Failed to disconnect from the database',
+      });
     }
   }
 }

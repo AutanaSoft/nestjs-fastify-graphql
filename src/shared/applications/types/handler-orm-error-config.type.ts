@@ -23,6 +23,9 @@ export type ErrorConfig = {
  * Todas las propiedades son opcionales; los valores no proporcionados
  * se toman de la configuración por defecto.
  *
+ * Solo se manejan errores de negocio esperados (P2002, P2025).
+ * Todos los demás errores técnicos retornan un error interno genérico.
+ *
  * @example
  * ```typescript
  * const userOrmConfig: HandlerOrmErrorConfig = {
@@ -40,18 +43,12 @@ export type ErrorConfig = {
  * @public
  */
 export type HandlerOrmErrorConfig = {
-  /** Error de violación de constraint único (ej: email duplicado) */
+  /** Error de violación de constraint único (ej: email duplicado) - P2002 */
   readonly uniqueConstraint?: ErrorConfig;
-  /** Error de registro no encontrado en base de datos */
+  /** Error de registro no encontrado en base de datos - P2025 */
   readonly notFound?: ErrorConfig;
-  /** Error de violación de clave foránea */
-  readonly foreignKeyConstraint?: ErrorConfig;
-  /** Error de validación de datos a nivel de base de datos */
-  readonly validation?: ErrorConfig;
-  /** Error de conexión a la base de datos */
-  readonly connection?: ErrorConfig;
-  /** Error desconocido o no categorizado */
-  readonly unknown?: ErrorConfig;
+  /** Error genérico para todos los demás errores técnicos */
+  readonly internalError?: ErrorConfig;
 };
 
 /**
