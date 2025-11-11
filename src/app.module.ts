@@ -10,11 +10,13 @@ import {
   throttlerConfig,
   validationPipeConfig,
 } from '@/config';
+import { eventEmitterConfigFactory } from '@/config/event-emitter.config';
 import loggerConfig, { createLoggerModuleOptions } from '@config/logger.config';
 import { ApolloDriver } from '@nestjs/apollo';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
@@ -40,6 +42,7 @@ import { SharedModule } from './shared/shared.module';
       inject: [loggerConfig.KEY],
       useFactory: createLoggerModuleOptions,
     }),
+    EventEmitterModule.forRoot(eventEmitterConfigFactory()),
     GraphQLModule.forRootAsync({
       imports: [ConfigModule.forFeature(graphqlConfig)],
       inject: [graphqlConfig.KEY],

@@ -2,6 +2,11 @@ export { default as appConfig, appConfigFactory, type AppConfig } from './app.co
 export { default as corsConfig, corsConfigFactory, type CorsConfig } from './cors.config';
 export { default as cryptoConfig, cryptoConfigFactory, type CryptoConfig } from './crypto.config';
 export {
+  default as eventEmitterConfig,
+  eventEmitterConfigFactory,
+  type EventEmitterConfig,
+} from './event-emitter.config';
+export {
   createGraphQLModuleOptions,
   default as graphqlConfig,
   graphqlConfigFactory,
