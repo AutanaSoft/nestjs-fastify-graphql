@@ -58,9 +58,9 @@ export class CryptoService {
       return encrypted;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw ErrorFactory.createInternalServerError({
+      throw ErrorFactory.createAppInternalError({
         message: `Encryption failed: ${errorMessage}`,
-        code: 'ENCRYPTION_ERROR',
+        code: 'CRYPTO_SERVICE_ENCRYPTION_ERROR',
         options: {
           originalError: error instanceof Error ? error : undefined,
           extensions: {
@@ -96,9 +96,9 @@ export class CryptoService {
       return decrypted;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw ErrorFactory.createInternalServerError({
+      throw ErrorFactory.createAppInternalError({
         message: `Decryption failed: ${errorMessage}`,
-        code: 'INTERNAL_SERVER_ERROR',
+        code: 'CRYPTO_SERVICE_DECRYPTION_ERROR',
         options: {
           originalError: error instanceof Error ? error : undefined,
           extensions: {
@@ -133,8 +133,17 @@ export class CryptoService {
       return hashed;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error({ error: errorMessage, method: 'hash' }, 'Hashing failed');
-      throw new Error(`Hashing operation failed: ${errorMessage}`);
+      throw ErrorFactory.createAppInternalError({
+        message: `Hashing failed: ${errorMessage}`,
+        code: 'CRYPTO_SERVICE_HASHING_ERROR',
+        options: {
+          originalError: error instanceof Error ? error : undefined,
+          extensions: {
+            service: 'CryptoService',
+            method: 'hash',
+          },
+        },
+      });
     }
   }
 }
