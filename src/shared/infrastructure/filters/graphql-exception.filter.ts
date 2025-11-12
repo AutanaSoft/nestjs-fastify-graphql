@@ -1,4 +1,10 @@
-import { DomainBaseError, ErrorFactory } from '@/shared/domain/errors';
+import {
+  ApiReturnError,
+  AppInternalError,
+  DataBaseError,
+  DomainBaseError,
+  ErrorFactory,
+} from '@/shared/domain/errors';
 import { Catch, ExceptionFilter } from '@nestjs/common';
 import { GraphQLError } from 'graphql';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
@@ -16,24 +22,56 @@ export class GraphQLExceptionFilter implements ExceptionFilter {
    * @param exception - Excepción recibida desde el resolver o capa de infraestructura
    *
    * @remarks
-   * Implementa una estrategia de manejo de errores en tres niveles:
-   * 1. DomainBaseError: Errores controlados del dominio (pasar tal cual, logging en origen)
-   * 2. GraphQLError: Errores nativos del framework GraphQL (log warn + pasar)
-   * 3. Unknown: Errores completamente inesperados (log error + sanitizar)
-   *
-   * Los errores que extienden DomainBaseError (ApiReturnError, AppInternalError)
-   * deben hacer logging en el punto donde se generan, no en este filtro.
+   * Implementa una estrategia de manejo de errores en cinco niveles:
+   * 1. ApiReturnError: Errores de cliente (validación, reglas de negocio) - pasar tal cual
+   * 2. DataBaseError: Errores de persistencia - registrar y sanitizar
+   * 3. AppInternalError: Errores internos - registrar y sanitizar completamente
+   * 4. DomainBaseError: Otros errores de dominio - fallback genérico
+   * 5. GraphQLError: Errores nativos del framework - log warn + pasar
+   * 6. Unknown: Errores completamente inesperados - log error + sanitizar
    *
    * @public
    */
   catch(exception: unknown): void {
-    // 1. Errores de dominio - Errores controlados que ya tienen el formato adecuado
-    if (exception instanceof DomainBaseError) {
-      // Pasar error de API tal cual al cliente
+    // 1. Errores de API - Retornar al cliente tal cual (sin logging, se hace en origen)
+    if (exception instanceof ApiReturnError) {
       throw exception;
     }
 
-    // 2. Errores nativos de GraphQL - Errores del framework que no controlamos
+    // 2. Errores de base de datos - Registrar y sanitizar para el cliente
+    if (exception instanceof DataBaseError) {
+      this.logger.error(
+        {
+          error: exception,
+          stack: exception.stack,
+          code: exception.extensions?.code,
+          status: exception.extensions?.status,
+        },
+        `Database Error: ${exception.message}`,
+      );
+      throw ErrorFactory.createInternalServerError();
+    }
+
+    // 3. Errores internos - Registrar y sanitizar completamente para el cliente
+    if (exception instanceof AppInternalError) {
+      this.logger.error(
+        {
+          error: exception,
+          stack: exception.stack,
+          code: exception.extensions?.code,
+          status: exception.extensions?.status,
+        },
+        `Application Internal Error: ${exception.message}`,
+      );
+      throw ErrorFactory.createInternalServerError();
+    }
+
+    // 4. Otros errores de dominio - Fallback genérico para errores controlados
+    if (exception instanceof DomainBaseError) {
+      throw exception;
+    }
+
+    // 5. Errores nativos de GraphQL - Errores del framework que no controlamos
     if (exception instanceof GraphQLError) {
       const stack = exception instanceof Error ? exception.stack : undefined;
       this.logger.warn(
@@ -48,7 +86,7 @@ export class GraphQLExceptionFilter implements ExceptionFilter {
       throw exception;
     }
 
-    // 3. Errores desconocidos - Errores completamente inesperados que requieren investigación
+    // 6. Errores desconocidos - Errores completamente inesperados que requieren investigación
     const error = exception instanceof Error ? exception : undefined;
     const errorMessage = error ? error.message : 'Non-error thrown';
     const stack = error ? error.stack : undefined;
