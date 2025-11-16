@@ -1,6 +1,6 @@
 import { Query, Resolver } from '@nestjs/graphql';
 import { AppService } from './app.service';
-import { AppConfigDto } from './shared/applications/dto/response/app-config.dto';
+import { AppConfigDto } from '@/shared/applications/dto/response/app-config.dto';
 
 /**
  * @public

@@ -10,7 +10,7 @@ import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Logger } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
-import { AppModule } from './app.module';
+import { AppModule } from './modules/app.module';
 import { buildGraphQLUrl, buildServerUrl } from './shared/applications/utils';
 
 async function bootstrap() {

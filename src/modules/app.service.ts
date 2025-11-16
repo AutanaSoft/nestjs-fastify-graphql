@@ -1,8 +1,8 @@
+import { AppConfig } from '@/config';
+import { AppConfigDto } from '@/shared/applications/dto/response/app-config.dto';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { plainToInstance } from 'class-transformer';
-import { AppConfig } from './config';
-import { AppConfigDto } from './shared/applications/dto/response/app-config.dto';
 
 @Injectable()
 /**
