@@ -22,7 +22,7 @@ export class GraphQLExceptionFilter implements ExceptionFilter {
    * @param exception - Excepción recibida desde el resolver o capa de infraestructura
    *
    * @remarks
-   * Implementa una estrategia de manejo de errores en cinco niveles:
+   * Implementa una estrategia de manejo de errores en seis niveles:
    * 1. ApiReturnError: Errores de cliente (validación, reglas de negocio) - pasar tal cual
    * 2. DataBaseError: Errores de persistencia - registrar y sanitizar
    * 3. AppInternalError: Errores internos - registrar y sanitizar completamente
@@ -40,29 +40,13 @@ export class GraphQLExceptionFilter implements ExceptionFilter {
 
     // 2. Errores de base de datos - Registrar y sanitizar para el cliente
     if (exception instanceof DataBaseError) {
-      this.logger.error(
-        {
-          error: exception,
-          stack: exception.stack,
-          code: exception.extensions?.code,
-          status: exception.extensions?.status,
-        },
-        `Database Error: ${exception.message}`,
-      );
+      this.logError(exception, 'error', 'Database Error');
       throw ErrorFactory.createInternalServerError();
     }
 
     // 3. Errores internos - Registrar y sanitizar completamente para el cliente
     if (exception instanceof AppInternalError) {
-      this.logger.error(
-        {
-          error: exception,
-          stack: exception.stack,
-          code: exception.extensions?.code,
-          status: exception.extensions?.status,
-        },
-        `Application Internal Error: ${exception.message}`,
-      );
+      this.logError(exception, 'error', 'Application Internal Error');
       throw ErrorFactory.createInternalServerError();
     }
 
@@ -73,11 +57,10 @@ export class GraphQLExceptionFilter implements ExceptionFilter {
 
     // 5. Errores nativos de GraphQL - Errores del framework que no controlamos
     if (exception instanceof GraphQLError) {
-      const stack = exception instanceof Error ? exception.stack : undefined;
       this.logger.warn(
         {
           error: exception,
-          stack,
+          stack: exception.stack,
           code: exception.extensions?.code,
           status: exception.extensions?.status,
         },
@@ -87,6 +70,39 @@ export class GraphQLExceptionFilter implements ExceptionFilter {
     }
 
     // 6. Errores desconocidos - Errores completamente inesperados que requieren investigación
+    this.logUnknownError(exception);
+    throw ErrorFactory.createInternalServerError();
+  }
+
+  /**
+   * Registra errores de dominio con contexto completo.
+   *
+   * @param exception - Error de dominio a registrar
+   * @param level - Nivel de logging ('error' o 'warn')
+   * @param prefix - Prefijo descriptivo para el mensaje de log
+   *
+   * @private
+   */
+  private logError(exception: DomainBaseError, level: 'error' | 'warn', prefix: string): void {
+    this.logger[level](
+      {
+        error: exception,
+        stack: exception.stack,
+        code: exception.extensions?.code,
+        status: exception.extensions?.status,
+      },
+      `${prefix}: ${exception.message}`,
+    );
+  }
+
+  /**
+   * Registra errores desconocidos que no son instancias de Error.
+   *
+   * @param exception - Excepción desconocida a registrar
+   *
+   * @private
+   */
+  private logUnknownError(exception: unknown): void {
     const error = exception instanceof Error ? exception : undefined;
     const errorMessage = error ? error.message : 'Non-error thrown';
     const stack = error ? error.stack : undefined;
@@ -98,7 +114,5 @@ export class GraphQLExceptionFilter implements ExceptionFilter {
       },
       `Unknown Error: ${errorMessage}`,
     );
-
-    throw ErrorFactory.createInternalServerError();
   }
 }
